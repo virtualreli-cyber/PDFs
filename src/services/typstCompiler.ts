@@ -12,7 +12,7 @@ export async function initTypstCompiler(): Promise<any> {
         await compiler.init({
           getModule: () => '/typst_ts_web_compiler_bg.wasm',
           beforeBuild: [
-            loadFonts([], { assets: ['text'] })
+            loadFonts(['/fonts/NotoSerifCJKsc-Regular.otf'], { assets: ['text', 'cjk'] })
           ]
         });
         compilerInstance = compiler;

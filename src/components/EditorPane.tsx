@@ -17,6 +17,8 @@ interface EditorPaneProps {
   onExamenTipoChange: (tipo: ExamenTipo) => void;
   examenDocType: ExamenDocType;
   onExamenDocTypeChange: (docType: ExamenDocType) => void;
+  examQuestionsPerPage: string;
+  onExamQuestionsPerPageChange: (val: string) => void;
   // Acciones generales
   onLoadSample: () => void;
   onClear: () => void;
@@ -34,6 +36,8 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
   onExamenTipoChange,
   examenDocType,
   onExamenDocTypeChange,
+  examQuestionsPerPage,
+  onExamQuestionsPerPageChange,
   onLoadSample,
   onClear,
 }) => {
@@ -141,6 +145,23 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
                   <span>{isVa ? 'Solucionari' : 'Solucionario'}</span>
                 </button>
               </div>
+
+              {examenTipo !== 'desarrollo' && (
+                <div className="exam-pages-control">
+                  <span className="exam-control-label">{isVa ? 'Preg./pàg:' : 'Preg./pág:'}</span>
+                  <input
+                    type="text"
+                    className="exam-pages-input"
+                    value={examQuestionsPerPage}
+                    onChange={(e) => onExamQuestionsPerPageChange(e.target.value)}
+                    placeholder={examenTipo === 'test' ? '10, 10' : '10'}
+                    title={isVa 
+                      ? "Nombre de preguntes per pàgina (ex: '10, 10' o '8, 12'). Es distribuiran en 2 columnes iguals per pàgina."
+                      : "Número de preguntas por página (ej: '10, 10' o '8, 12'). Se distribuirán en 2 columnas iguales por página."
+                    }
+                  />
+                </div>
+              )}
             </div>
           )}
 

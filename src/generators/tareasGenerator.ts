@@ -202,7 +202,7 @@ ${instrBlock}${fuenteBlock}${preguntasTypst}
 )
 
 #set text(
-  font: ("Georgia", "serif"),
+  font: ("Georgia", "Noto Serif CJK SC", "Noto Sans CJK SC", "serif"),
   size: 10.8pt,
   fill: rgb("#263238"),
   lang: "${isVa ? 'ca' : 'es'}"

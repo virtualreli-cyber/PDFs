@@ -29,6 +29,7 @@ export function App() {
   // Estados específicos de Exámenes
   const [examenTipo, setExamenTipo] = useState<ExamenTipo>('test');
   const [examenDocType, setExamenDocType] = useState<ExamenDocType>('examen');
+  const [examQuestionsPerPage, setExamQuestionsPerPage] = useState<string>('10, 10');
   const [examenesMd, setExamenesMd] = useState<string>(SAMPLE_EXAMEN_TEST_ES);
 
   // Estados específicos de Tareas
@@ -92,10 +93,10 @@ export function App() {
       return generateApuntesTypst(apuntesMd, apuntesMode, lang);
     }
     if (section === 'examenes') {
-      return generateExamenTypst(examenesMd, examenTipo, examenDocType, lang);
+      return generateExamenTypst(examenesMd, examenTipo, examenDocType, lang, examQuestionsPerPage);
     }
     return generateTareasTypst(tareasMd, lang);
-  }, [section, apuntesMd, apuntesMode, examenesMd, examenTipo, examenDocType, tareasMd, lang]);
+  }, [section, apuntesMd, apuntesMode, examenesMd, examenTipo, examenDocType, tareasMd, lang, examQuestionsPerPage]);
 
   // Código Typst actual
   const currentTypstCode = buildTypstSource();
@@ -211,12 +212,20 @@ export function App() {
   const handleExamenTipoChange = (tipo: ExamenTipo) => {
     setExamenTipo(tipo);
     setCustomFilename(null);
-    if (tipo === 'test' && (examenesMd === SAMPLE_EXAMEN_MIXTO_ES || examenesMd === SAMPLE_EXAMEN_DESARROLLO_ES)) {
-      setExamenesMd(SAMPLE_EXAMEN_TEST_ES);
-    } else if (tipo === 'mixto' && (examenesMd === SAMPLE_EXAMEN_TEST_ES || examenesMd === SAMPLE_EXAMEN_DESARROLLO_ES)) {
-      setExamenesMd(SAMPLE_EXAMEN_MIXTO_ES);
-    } else if (tipo === 'desarrollo' && (examenesMd === SAMPLE_EXAMEN_TEST_ES || examenesMd === SAMPLE_EXAMEN_MIXTO_ES)) {
-      setExamenesMd(SAMPLE_EXAMEN_DESARROLLO_ES);
+    if (tipo === 'test') {
+      setExamQuestionsPerPage('10, 10');
+      if (examenesMd === SAMPLE_EXAMEN_MIXTO_ES || examenesMd === SAMPLE_EXAMEN_DESARROLLO_ES) {
+        setExamenesMd(SAMPLE_EXAMEN_TEST_ES);
+      }
+    } else if (tipo === 'mixto') {
+      setExamQuestionsPerPage('10');
+      if (examenesMd === SAMPLE_EXAMEN_TEST_ES || examenesMd === SAMPLE_EXAMEN_DESARROLLO_ES) {
+        setExamenesMd(SAMPLE_EXAMEN_MIXTO_ES);
+      }
+    } else if (tipo === 'desarrollo') {
+      if (examenesMd === SAMPLE_EXAMEN_TEST_ES || examenesMd === SAMPLE_EXAMEN_MIXTO_ES) {
+        setExamenesMd(SAMPLE_EXAMEN_DESARROLLO_ES);
+      }
     }
   };
 
@@ -249,6 +258,8 @@ export function App() {
             setExamenDocType(docType);
             setCustomFilename(null);
           }}
+          examQuestionsPerPage={examQuestionsPerPage}
+          onExamQuestionsPerPageChange={setExamQuestionsPerPage}
           onLoadSample={handleLoadSample}
           onClear={handleClear}
         />

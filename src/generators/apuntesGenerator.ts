@@ -297,7 +297,7 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
 )
 
 #set text(
-  font: ("Georgia", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji", "serif"),
+  font: ("Georgia", "Noto Serif CJK SC", "Noto Sans CJK SC", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji", "serif"),
   size: 10.9pt,
   fill: rgb("#263238"),
   lang: "${isVa ? 'ca' : 'es'}"
@@ -337,6 +337,7 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
     [
       #grid(
         columns: (1fr, auto),
+        gutter: 18pt,
         align: (left + horizon, right + horizon),
         [
           #box(
@@ -346,7 +347,9 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
             text(7.5pt, fill: white, font: "Helvetica Neue", weight: "bold")[${sanitizeTypst(curso)}]
           )
           #v(3.5pt)
-          #text(18pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[${sanitizeTypst(titulo)}]
+          #block(width: 100%)[
+            #text(16.5pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[${sanitizeTypst(titulo).replace(/\\\\/g, '\\\n')}]
+          ]
           #v(2.5pt)
           #text(9.5pt, fill: rgb("#52796F"), font: "Georgia", style: "italic")[${sanitizeTypst(subtitleFinal)}]
         ],
