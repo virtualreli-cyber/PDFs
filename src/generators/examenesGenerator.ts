@@ -281,14 +281,12 @@ function generateExamenCompletoTypst(
 
   function renderPreguntaDesarrollo(d: PreguntaDesarrollo) {
     const citaBlock = d.citaTexto ? `\n  #caja-cita-examen("${sanitizeTypst(d.citaTexto)}")` : '';
-    const pautasBlock = d.pautas ? `\n  #v(2.5pt)\n  #text(size: 9.2pt, style: "italic", fill: rgb("#52796F"))[${isVa ? "Pautes" : "Pautas"}: ${sanitizeTypst(d.pautas)}]` : '';
+    const pautasBlock = d.pautas ? `\n  #v(2.5pt)\n  #text(size: 9.5pt, style: "italic", fill: rgb("#64748B"))[${isVa ? "Pautes" : "Pautas"}: ${sanitizeTypst(d.pautas)}]` : '';
     return `#block(breakable: false, spacing: 10pt)[
   #grid(
     columns: (1fr, auto),
-    gutter: 8pt,
-    align: (left + horizon, right + horizon),
-    [#text(size: 10.8pt, fill: rgb("#52796F"), weight: "bold")[${d.num}.] #text(size: 10.8pt, weight: "bold", fill: rgb("#2F3E46"))[${sanitizeTypst(d.enunciado)}]],
-    box(fill: rgb("#EDF4F2"), stroke: 0.5pt + rgb("#84A98C"), radius: 3pt, inset: (x: 5pt, y: 2.5pt))[#text(size: 8.5pt, weight: "bold", fill: rgb("#2F3E46"))[[${sanitizeTypst(d.puntos)}]]]
+    [#text(size: 10.8pt, fill: rgb("#1E3A8A"), weight: "bold")[${d.num}.] #text(size: 10.8pt, weight: "bold", fill: rgb("#0F172A"))[${sanitizeTypst(d.enunciado)}]],
+    [#text(size: 9.5pt, weight: "bold", fill: rgb("#2563EB"))[[${sanitizeTypst(d.puntos)}]]]
   )${citaBlock}${pautasBlock}
   #lineas-pautadas(${d.lineas || 6})
 ]`;
@@ -296,24 +294,24 @@ function generateExamenCompletoTypst(
 
   function renderBanner(titulo: string, desc?: string) {
     return `#block(
-  fill: rgb("#EDF4F2"),
-  stroke: (left: 3.5pt + rgb("#52796F"), rest: 0.5pt + rgb("#CAD2C5")),
+  fill: rgb("#F1F5F9"),
+  stroke: (left: 3.5pt + rgb("#2563EB"), rest: 0.5pt + rgb("#CBD5E1")),
   inset: (x: 8pt, y: 5pt),
   radius: (right: 3pt),
   width: 100%,
   spacing: 8pt
 )[
-  #text(weight: "bold", size: 10.5pt, fill: rgb("#2F3E46"))[${sanitizeTypst(titulo)}]
-  ${desc ? `\\ \n  #text(size: 9pt, style: "italic", fill: rgb("#52796F"))[${sanitizeTypst(desc)}]` : ''}
+  #text(weight: "bold", size: 10.5pt, fill: rgb("#0F172A"))[${sanitizeTypst(titulo)}]
+  ${desc ? `\\ \n  #text(size: 9pt, style: "italic", fill: rgb("#64748B"))[${sanitizeTypst(desc)}]` : ''}
 ]`;
   }
 
   function renderTestGrid(questions: PreguntaTest[]): string {
     if (questions.length === 0) return '';
     const qCount = questions.length;
-    let spacingBottom = '6.2pt';
-    if (qCount <= 8) spacingBottom = '7.5pt';
-    else if (qCount > 10) spacingBottom = '5.0pt';
+    let spacingBottom = '6.8pt';
+    if (qCount <= 8) spacingBottom = '7.8pt';
+    else if (qCount > 10) spacingBottom = '5.2pt';
 
     const mid = Math.ceil(qCount / 2);
     const left = questions.slice(0, mid);
@@ -424,7 +422,7 @@ ${rightCode}
         continue;
       }
       if (el.type === 'test') {
-        bodyTypstChunks.push(renderPreguntaTest(el.q, '6.5pt') + '\n\n');
+        bodyTypstChunks.push(renderPreguntaTest(el.q, '6.8pt') + '\n\n');
         continue;
       }
     }
@@ -432,7 +430,7 @@ ${rightCode}
 
   return `// =============================================================================
 // PLANTILLA OFICIAL DE EXAMEN • RELIGIÓN CATÓLICA
-// Sistema de Diseño Pastel Corporativo (Georgia + CJK, 2 columnas simétricas)
+// Departamento de Religión Católica • 2 columnas simétricas
 // =============================================================================
 
 #set document(
@@ -442,7 +440,7 @@ ${rightCode}
 
 #set page(
   paper: "a4",
-  margin: (top: 1.8cm, bottom: 1.8cm, left: 1.3cm, right: 1.3cm),
+  margin: (top: 1.8cm, bottom: 1.8cm, left: 1.25cm, right: 1.25cm),
   header-ascent: 0.6cm,
   footer-descent: 0.6cm,
   header: context {
@@ -476,33 +474,36 @@ ${rightCode}
 )
 
 #set text(
-  font: ("Georgia", "Noto Serif CJK SC", "Noto Sans CJK SC", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji", "serif"),
-  size: 10.9pt,
-  fill: rgb("#263238"),
+  font: ("Helvetica Neue", "Arial", "Noto Sans CJK SC", "Noto Serif CJK SC", "sans-serif"),
+  size: 10.5pt,
+  fill: rgb("#1F2937"),
   lang: "${isVa ? 'ca' : 'es'}"
 )
 
 #set par(justify: false, leading: 0.44em)
 
-// COMPONENTES GRÁFICOS CORPORATIVOS
-#let badge(letra) = circle(
-  radius: 5.5pt,
-  stroke: 0.5pt + rgb("#CAD2C5"),
-  fill: rgb("#EDF4F2")
-)[#align(center + horizon)[#text(size: 6.5pt, weight: "bold", fill: rgb("#2F3E46"))[#letra]]]
+// COMPONENTES GRÁFICOS
+#let badge(letra) = box(
+  width: 13pt,
+  height: 13pt,
+  radius: 6.5pt,
+  stroke: 0.6pt + rgb("#94A3B8"),
+  fill: rgb("#F8FAFC"),
+  align(center + horizon)[#text(size: 8pt, weight: "bold", fill: rgb("#334155"))[#letra]]
+)
 
-#let opcion(letra, texto) = block(spacing: 3.2pt)[
+#let opcion(letra, texto) = block(spacing: 3.6pt)[
   #grid(
-    columns: (13pt, 1fr),
-    gutter: 4pt,
+    columns: (15.5pt, 1fr),
+    gutter: 4.5pt,
     align: (top + center, top + left),
     badge(letra),
-    par(leading: 0.38em, justify: false)[#text(size: 9.6pt, fill: rgb("#334155"))[#texto]]
+    par(leading: 0.38em, justify: false)[#text(size: 10.2pt, fill: rgb("#374151"))[#texto]]
   )
 ]
 
-#let pregunta-test(num, enunciado, a, b, c, d, spacing_bottom: 6.2pt) = block(breakable: false, spacing: spacing_bottom)[
-  #text(size: 10.5pt, fill: rgb("#2F3E46"), weight: "bold")[#num. #enunciado]
+#let pregunta-test(num, enunciado, a, b, c, d, spacing_bottom: 6.8pt) = block(breakable: false, spacing: spacing_bottom)[
+  #text(size: 10.8pt, fill: rgb("#1E3A8A"), weight: "bold")[#num.] #text(size: 10.8pt, weight: "bold", fill: rgb("#0F172A"))[#enunciado]
   #v(2.5pt)
   #opcion("a", a)
   #opcion("b", b)
@@ -513,57 +514,56 @@ ${rightCode}
 #let lineas-pautadas(n, espaciado: 12.5pt) = block(spacing: 5pt)[
   #for _ in range(n) [
     #v(espaciado)
-    #line(length: 100%, stroke: (paint: rgb("#CAD2C5"), thickness: 0.6pt, dash: "dotted"))
+    #line(length: 100%, stroke: (paint: rgb("#CBD5E1"), thickness: 0.6pt, dash: "dotted"))
   ]
 ]
 
 #let caja-cita-examen(texto) = block(
-  fill: rgb("#EDF4F2"),
-  stroke: (left: 3pt + rgb("#52796F"), rest: 0.5pt + rgb("#CAD2C5")),
+  fill: rgb("#F8FAFC"),
+  stroke: (left: 3pt + rgb("#94A3B8"), rest: 0.5pt + rgb("#E2E8F0")),
   radius: (right: 4pt),
   inset: (x: 10pt, y: 6pt),
   width: 100%,
   spacing: 6pt
 )[
-  #text(size: 9.8pt, font: "Georgia", style: "italic", fill: rgb("#2F3E46"))[#texto]
+  #text(size: 9.8pt, font: "Georgia", style: "italic", fill: rgb("#334155"))[#texto]
 ]
 
 // CABECERA INSTITUCIONAL (PÁGINA 1)
 #grid(
   columns: (1fr,),
   align: left,
-  [#text(size: 8.5pt, weight: "bold", fill: rgb("#52796F"), font: "Helvetica Neue")[${headerDept}]]
+  [#text(size: 10.5pt, weight: "bold", tracking: 0.08em, fill: rgb("#1E293B"))[${headerDept}]]
 )
 #v(2.5pt)
-#line(length: 100%, stroke: 1.2pt + rgb("#84A98C"))
-#v(3pt)
+#line(length: 100%, stroke: 1.5pt + rgb("#1E293B"))
+#v(2.5pt)
 
 #grid(
   columns: (1.1fr, 1fr),
-  gutter: 14pt,
-  align: (left + horizon, right + horizon),
+  gutter: 16pt,
   [
-    #text(size: 17pt, weight: "bold", fill: rgb("#2F3E46"), font: "Helvetica Neue")[${sanitizeTypst(data.titulo).toUpperCase()}] \\
+    #text(size: 18pt, weight: "bold", fill: rgb("#0F172A"))[${sanitizeTypst(data.titulo).toUpperCase()}] \\
     #v(2pt)
-    #text(size: 9.5pt, style: "italic", fill: rgb("#52796F"), font: "Georgia")[${sanitizeTypst(data.subtitulo)}]
+    #text(size: 10.5pt, style: "italic", fill: rgb("#475569"))[${sanitizeTypst(data.subtitulo)}]
   ],
   [
-    #set text(size: 8.5pt, font: "Helvetica Neue")
-    #rect(width: 100%, stroke: 0.6pt + rgb("#CAD2C5"), radius: 4pt, inset: 6pt, fill: rgb("#EDF4F2"))[
+    #set text(size: 8.5pt)
+    #rect(width: 100%, stroke: 0.6pt + rgb("#CBD5E1"), radius: 4pt, inset: 6pt, fill: rgb("#F8FAFC"))[
       #grid(
         columns: (auto, 1fr),
-        row-gutter: 4.5pt,
+        row-gutter: 5pt,
         gutter: 6pt,
-        [#strong[${isVa ? "ALUMNE/A:" : "ALUMNO/A:"}]], [#line(length: 100%, stroke: 0.6pt + rgb("#CAD2C5"))],
+        [#strong[${isVa ? "ALUMNE/A:" : "ALUMNO/A:"}]], [#line(length: 100%, stroke: 0.6pt + rgb("#94A3B8"))],
         [#strong[${isVa ? "CURS:" : "CURSO:"}]], [
           #grid(
             columns: (1fr, auto, 1fr, auto, 1fr),
             gutter: 4pt,
             [#align(left)[#text(size: 8.5pt)[${sanitizeTypst(data.curso)}]]],
             [#strong[${isVa ? "DATA:" : "FECHA:"}]],
-            [#line(length: 100%, stroke: 0.6pt + rgb("#CAD2C5"))],
+            [#line(length: 100%, stroke: 0.6pt + rgb("#94A3B8"))],
             [#strong[NOTA:]],
-            [#line(length: 100%, stroke: 0.6pt + rgb("#CAD2C5"))]
+            [#line(length: 100%, stroke: 0.6pt + rgb("#94A3B8"))]
           )
         ]
       )
@@ -572,22 +572,22 @@ ${rightCode}
 )
 
 #v(2.5pt)
-#line(length: 100%, stroke: 0.6pt + rgb("#CAD2C5"))
+#line(length: 100%, stroke: 0.6pt + rgb("#E2E8F0"))
 #v(2.5pt)
 
 #rect(
   width: 100%,
-  stroke: 0.6pt + rgb("#CAD2C5"),
+  stroke: 0.6pt + rgb("#BFDBFE"),
   radius: 3pt,
   inset: (x: 8pt, y: 4.5pt),
-  fill: rgb("#EDF4F2")
+  fill: rgb("#EFF6FF")
 )[
-  #text(size: 9.2pt, fill: rgb("#2F3E46"), font: "Helvetica Neue")[
-    #text(weight: "bold", fill: rgb("#D08C51"))[${isVa ? "INSTRUCCIONS:" : "INSTRUCCIONES:"}] ${cleanInst}
+  #text(size: 10.0pt, fill: rgb("#1E40AF"))[
+    #strong[${isVa ? "INSTRUCCIONS:" : "INSTRUCCIONES:"}] ${cleanInst}
   ]
 ]
 
-#v(4.5pt)
+#v(4pt)
 
 // CONTENIDO PRINCIPAL DEL EXAMEN
 ${bodyTypstChunks.join('\n')}
