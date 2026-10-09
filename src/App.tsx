@@ -140,10 +140,10 @@ export function App() {
     }
   }, [buildTypstSource]);
 
-  // Compilar en la carga inicial y al cambiar de sección / idioma / modalidad principal
+  // Compilar únicamente en la carga inicial de la aplicación
   useEffect(() => {
     triggerCompilation();
-  }, [section, lang, apuntesMode, examenTipo, examenDocType]);
+  }, []);
 
   // Cargar ejemplo para la sección activa
   const handleLoadSample = () => {

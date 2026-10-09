@@ -20,11 +20,9 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
   // Filtrar bloques según el modo
   let processedMd = markdown;
   if (mode === 'abreviado') {
-    // Eliminar contenido marcado exclusivamente para la versión extendida
     processedMd = processedMd.replace(/<!--\s*solo-extendido\s*-->[\s\S]*?<!--\s*fin-extendido\s*-->/gi, '');
     processedMd = processedMd.replace(/:::extendido[\s\S]*?:::/gi, '');
   } else {
-    // En versión extendida, quitar solo las marcas y dejar el contenido
     processedMd = processedMd.replace(/<!--\s*solo-extendido\s*-->/gi, '');
     processedMd = processedMd.replace(/<!--\s*fin-extendido\s*-->/gi, '');
     processedMd = processedMd.replace(/:::extendido/gi, '');
@@ -98,15 +96,15 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
     const line = rawLine.trim();
 
     // Metadatos explícitos
-    if (line.startsWith('# TÍTULO:') || line.startsWith('# TITULO:')) {
+    if (line.startsWith('# TÍTULO:') || line.startsWith('# TITULO:') || line.startsWith('# TÍTOL:')) {
       titulo = line.substring(line.indexOf(':') + 1).trim();
       continue;
     }
-    if (line.startsWith('# SUBTÍTULO:') || line.startsWith('# SUBTITULO:')) {
+    if (line.startsWith('# SUBTÍTULO:') || line.startsWith('# SUBTITULO:') || line.startsWith('# SUBTÍTOL:')) {
       subtitulo = line.substring(line.indexOf(':') + 1).trim();
       continue;
     }
-    if (line.startsWith('# CURSO:')) {
+    if (line.startsWith('# CURSO:') || line.startsWith('# CURS:')) {
       curso = line.substring(line.indexOf(':') + 1).trim();
       continue;
     }
@@ -142,11 +140,11 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
       const quoteContent = line.substring(1).trim();
 
       // Detección robusta de cabecera de caja:
-      // Opcional emoji/símbolos, luego **[TAG]** o **TAG:** y opcional título
-      const boxStartMatch = quoteContent.match(/^(?:[^\w*\[]*\s*)?\*\*\[?([^*\]]+)\]?\*\*:?\s*(.*)$/);
+      // Busca cualquier tag dentro de **[TAG]** o **TAG:**
+      const boxStartMatch = quoteContent.match(/\*\*\[?([^*\]:]+?)\]?:?\*\*:?\s*(.*)/);
 
       if (boxStartMatch) {
-        const tagUpper = boxStartMatch[1].toUpperCase();
+        const tagUpper = boxStartMatch[1].toUpperCase().trim();
         let matchedType: 'CITA' | 'EJEMPLO' | 'GLOSARIO' | 'HISTORICO' | 'ARTE' | 'TESTIMONIO' | 'SABIAS_QUE' | 'PARA_PENSAR' | null = null;
 
         if (tagUpper.includes('CITA') || tagUpper.includes('MAGISTERI') || tagUpper.includes('BIBLIC')) {
@@ -155,7 +153,7 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
           matchedType = 'EJEMPLO';
         } else if (tagUpper.includes('GLOSARIO') || tagUpper.includes('GLOSSARI')) {
           matchedType = 'GLOSARIO';
-        } else if (tagUpper.includes('HISTÓRIC') || tagUpper.includes('HISTÒRIC') || tagUpper.includes('HISTORIC')) {
+        } else if (tagUpper.includes('HISTÓRIC') || tagUpper.includes('HISTÒRIC') || tagUpper.includes('HISTORIC') || tagUpper.includes('DADA')) {
           matchedType = 'HISTORICO';
         } else if (tagUpper.includes('ARTE') || tagUpper.includes('ART') || tagUpper.includes('SÍMBOL') || tagUpper.includes('SIMBOL')) {
           matchedType = 'ARTE';
@@ -260,12 +258,14 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
 
 #set document(
   title: "${sanitizeTypst(titulo)}",
-  author: "Departamento de Religión Católica"
+  author: "${isVa ? "Departament de Religió Catòlica" : "Departamento de Religión Católica"}"
 )
 
 #set page(
   paper: "a4",
-  margin: (top: 1.45cm, bottom: 1.45cm, left: 1.55cm, right: 1.55cm),
+  margin: (top: 1.8cm, bottom: 1.7cm, left: 1.55cm, right: 1.55cm),
+  header-ascent: 0.55cm,
+  footer-descent: 0.55cm,
   header: context {
     if counter(page).get().first() > 1 [
       #grid(
@@ -274,13 +274,13 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
         text(7.8pt, fill: rgb("#52796F"), font: "Helvetica Neue", weight: "bold")[${sanitizeTypst(curso)} • ${sanitizeTypst(titulo.toUpperCase())}],
         text(7.8pt, fill: rgb("#D08C51"), font: "Helvetica Neue", weight: "bold")[${headerLabel}${headerVersion}]
       )
-      #v(2pt)
+      #v(2.5pt)
       #line(length: 100%, stroke: 0.6pt + rgb("#CAD2C5"))
     ]
   },
   footer: context [
     #line(length: 100%, stroke: 0.6pt + rgb("#E0E7E3"))
-    #v(3pt)
+    #v(3.5pt)
     #grid(
       columns: (1fr, auto),
       align: (left + horizon, right + horizon),
@@ -290,14 +290,14 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
         radius: 3pt,
         inset: (x: 6pt, y: 2.5pt),
         stroke: 0.5pt + rgb("#CAD2C5"),
-        text(7.5pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[Página #counter(page).display("1 de 1", both: true)]
+        text(7.5pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[${isVa ? "Pàgina" : "Página"} #counter(page).display("1 de 1", both: true)]
       )
     )
   ]
 )
 
 #set text(
-  font: ("Georgia", "serif"),
+  font: ("Georgia", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji", "serif"),
   size: 10.9pt,
   fill: rgb("#263238"),
   lang: "${isVa ? 'ca' : 'es'}"
@@ -310,6 +310,18 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
 )
 
 #let tamano-caja-texto = 10.2pt
+
+// ==============================================================================
+// ICONOS VECTORIALES INTEGRADOS (SVG NATIVO EN TYPST)
+// ==============================================================================
+#let icon-cita = image(bytes("<svg xmlns=\\\"http://www.w3.org/2000/svg\\\" viewBox=\\\"0 0 24 24\\\" fill=\\\"none\\\" stroke=\\\"#5E4B8B\\\" stroke-width=\\\"2.2\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"><path d=\\\"M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z\\\"/><path d=\\\"M6 2v20\\\"/></svg>"), format: "svg", width: 10.5pt, height: 10.5pt)
+#let icon-ejemplo = image(bytes("<svg xmlns=\\\"http://www.w3.org/2000/svg\\\" viewBox=\\\"0 0 24 24\\\" fill=\\\"none\\\" stroke=\\\"#287261\\\" stroke-width=\\\"2.2\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"><path d=\\\"M9 18h6\\\"/><path d=\\\"M10 22h4\\\"/><path d=\\\"M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5.76.76 1.23 1.52 1.41 2.5z\\\"/></svg>"), format: "svg", width: 10.5pt, height: 10.5pt)
+#let icon-glosario = image(bytes("<svg xmlns=\\\"http://www.w3.org/2000/svg\\\" viewBox=\\\"0 0 24 24\\\" fill=\\\"none\\\" stroke=\\\"#2D4B73\\\" stroke-width=\\\"2.2\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"><path d=\\\"m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z\\\"/></svg>"), format: "svg", width: 10.5pt, height: 10.5pt)
+#let icon-historia = image(bytes("<svg xmlns=\\\"http://www.w3.org/2000/svg\\\" viewBox=\\\"0 0 24 24\\\" fill=\\\"none\\\" stroke=\\\"#8C6219\\\" stroke-width=\\\"2.2\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"><line x1=\\\"3\\\" y1=\\\"22\\\" x2=\\\"21\\\" y2=\\\"22\\\"/><line x1=\\\"6\\\" y1=\\\"18\\\" x2=\\\"6\\\" y2=\\\"11\\\"/><line x1=\\\"10\\\" y1=\\\"18\\\" x2=\\\"10\\\" y2=\\\"11\\\"/><line x1=\\\"14\\\" y1=\\\"18\\\" x2=\\\"14\\\" y2=\\\"11\\\"/><line x1=\\\"18\\\" y1=\\\"18\\\" x2=\\\"18\\\" y2=\\\"11\\\"/><polygon points=\\\"12 2 20 7 4 7\\\"/></svg>"), format: "svg", width: 10.5pt, height: 10.5pt)
+#let icon-arte = image(bytes("<svg xmlns=\\\"http://www.w3.org/2000/svg\\\" viewBox=\\\"0 0 24 24\\\" fill=\\\"none\\\" stroke=\\\"#9C414D\\\" stroke-width=\\\"2.2\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"><circle cx=\\\"13.5\\\" cy=\\\"6.5\\\" r=\\\".5\\\" fill=\\\"#9C414D\\\"/><circle cx=\\\"17.5\\\" cy=\\\"10.5\\\" r=\\\".5\\\" fill=\\\"#9C414D\\\"/><circle cx=\\\"8.5\\\" cy=\\\"7.5\\\" r=\\\".5\\\" fill=\\\"#9C414D\\\"/><circle cx=\\\"6.5\\\" cy=\\\"12.5\\\" r=\\\".5\\\" fill=\\\"#9C414D\\\"/><path d=\\\"M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z\\\"/></svg>"), format: "svg", width: 10.5pt, height: 10.5pt)
+#let icon-testimonio = image(bytes("<svg xmlns=\\\"http://www.w3.org/2000/svg\\\" viewBox=\\\"0 0 24 24\\\" fill=\\\"none\\\" stroke=\\\"#265B88\\\" stroke-width=\\\"2.2\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"><path d=\\\"M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2\\\"/><circle cx=\\\"12\\\" cy=\\\"7\\\" r=\\\"4\\\"/></svg>"), format: "svg", width: 10.5pt, height: 10.5pt)
+#let icon-sabias = image(bytes("<svg xmlns=\\\"http://www.w3.org/2000/svg\\\" viewBox=\\\"0 0 24 24\\\" fill=\\\"none\\\" stroke=\\\"#1D6B5A\\\" stroke-width=\\\"2.2\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"><circle cx=\\\"12\\\" cy=\\\"12\\\" r=\\\"10\\\"/><path d=\\\"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3\\\"/><line x1=\\\"12\\\" y1=\\\"17\\\" x2=\\\"12.01\\\" y2=\\\"17\\\"/></svg>"), format: "svg", width: 10.5pt, height: 10.5pt)
+#let icon-pensar = image(bytes("<svg xmlns=\\\"http://www.w3.org/2000/svg\\\" viewBox=\\\"0 0 24 24\\\" fill=\\\"none\\\" stroke=\\\"#B85D26\\\" stroke-width=\\\"2.2\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\"><circle cx=\\\"12\\\" cy=\\\"12\\\" r=\\\"10\\\"/><polygon points=\\\"16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76\\\"/></svg>"), format: "svg", width: 10.5pt, height: 10.5pt)
 
 // ==============================================================================
 // 1. MACROS DE ESTRUCTURA Y CABECERA EDITORIAL
@@ -406,7 +418,7 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
 ]
 
 // ==============================================================================
-// 2. CATÁLOGO DIDÁCTICO PASTEL (8 CAJAS NORMALIZADAS)
+// 2. CATÁLOGO DIDÁCTICO PASTEL (8 CAJAS NORMALIZADAS CON ICONOGRAFÍA VECTORIAL)
 // ==============================================================================
 
 // 1. Cita Bíblica / Magisterio (Tono Lavanda)
@@ -424,10 +436,10 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
         columns: (auto, 1fr),
         gutter: 6pt,
         align: horizon,
-        text(10pt)[📖],
+        icon-cita,
         text(8.5pt, fill: rgb("#5E4B8B"), weight: "bold", font: "Helvetica Neue")[${isVa ? "CITA BÍBLICA / MAGISTERI" : "CITA BÍBLICA / MAGISTERIO"}]
       )
-      #v(2pt)
+      #v(2.5pt)
       #set text(size: tamano-caja-texto, style: "italic", fill: rgb("#263238"))
       #cita
       #if exegesis != none [
@@ -461,12 +473,12 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
         columns: (auto, 1fr),
         gutter: 6pt,
         align: horizon,
-        text(10pt)[💡],
+        icon-ejemplo,
         text(8.5pt, fill: rgb("#287261"), weight: "bold", font: "Helvetica Neue")[#titulo]
       )
       #v(2pt)
       #line(length: 100%, stroke: 0.5pt + rgb("#C6E7DE"))
-      #v(2pt)
+      #v(2.5pt)
       #set text(size: tamano-caja-texto, fill: rgb("#263238"))
       #body
     ]
@@ -489,7 +501,7 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
         columns: (auto, 1fr),
         gutter: 6pt,
         align: horizon,
-        text(10pt)[📚],
+        icon-glosario,
         text(8.5pt, fill: rgb("#2D4B73"), weight: "bold", font: "Helvetica Neue")[${isVa ? "GLOSSARI CONCEPTUAL" : "GLOSARIO CONCEPTUAL"}]
       )
       #v(2pt)
@@ -519,12 +531,12 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
         columns: (auto, 1fr),
         gutter: 6pt,
         align: horizon,
-        text(10pt)[🏛️],
+        icon-historia,
         text(8.5pt, fill: rgb("#8C6219"), weight: "bold", font: "Helvetica Neue")[#titulo]
       )
       #v(2pt)
       #line(length: 100%, stroke: 0.5pt + rgb("#F3E6C8"))
-      #v(2pt)
+      #v(2.5pt)
       #set text(size: tamano-caja-texto, fill: rgb("#263238"))
       #body
     ]
@@ -547,12 +559,12 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
         columns: (auto, 1fr),
         gutter: 6pt,
         align: horizon,
-        text(10pt)[🎨],
+        icon-arte,
         text(8.5pt, fill: rgb("#9C414D"), weight: "bold", font: "Helvetica Neue")[#titulo]
       )
       #v(2pt)
       #line(length: 100%, stroke: 0.5pt + rgb("#F5D5D8"))
-      #v(2pt)
+      #v(2.5pt)
       #set text(size: tamano-caja-texto, fill: rgb("#263238"))
       #body
     ]
@@ -575,7 +587,7 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
         columns: (auto, 1fr),
         gutter: 6pt,
         align: horizon,
-        text(10pt)[👤],
+        icon-testimonio,
         text(8.5pt, fill: rgb("#265B88"), weight: "bold", font: "Helvetica Neue")[#titulo]
       )
       #if persona != none [
@@ -584,7 +596,7 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
       ]
       #v(2pt)
       #line(length: 100%, stroke: 0.5pt + rgb("#C7DDEF"))
-      #v(2pt)
+      #v(2.5pt)
       #set text(size: tamano-caja-texto, fill: rgb("#263238"))
       #body
     ]
@@ -607,12 +619,12 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
         columns: (auto, 1fr),
         gutter: 6pt,
         align: horizon,
-        text(10pt)[❓],
+        icon-sabias,
         text(8.5pt, fill: rgb("#1D6B5A"), weight: "bold", font: "Helvetica Neue")[#titulo]
       )
       #v(2pt)
       #line(length: 100%, stroke: 0.5pt + rgb("#C2E7DE"))
-      #v(2pt)
+      #v(2.5pt)
       #set text(size: tamano-caja-texto, fill: rgb("#263238"))
       #body
     ]
@@ -635,12 +647,12 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
         columns: (auto, 1fr),
         gutter: 6pt,
         align: horizon,
-        text(10pt)[🧭],
+        icon-pensar,
         text(8.5pt, fill: rgb("#B85D26"), weight: "bold", font: "Helvetica Neue")[${isVa ? "PER A PENSAR • DIÀLEG I REFLEXIÓ" : "PARA PENSAR • DIÁLOGO Y REFLEXIÓN"}]
       )
       #v(2pt)
       #line(length: 100%, stroke: 0.5pt + rgb("#FCDCC7"))
-      #v(2pt)
+      #v(2.5pt)
       #set text(size: tamano-caja-texto, fill: rgb("#263238"))
       #body
     ]

@@ -24,7 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
           <BookOpen className="w-5 h-5 text-emerald-800" />
         </div>
         <div className="brand-titles">
-          <h1>Editorial Religión</h1>
+          <h1>{lang === 'va' ? 'Editorial Religió' : 'Editorial Religión'}</h1>
           <span className="brand-badge">PDF Studio</span>
         </div>
       </div>
@@ -82,12 +82,12 @@ export const Header: React.FC<HeaderProps> = ({
           {isCompiling ? (
             <span className="status-pill compiling">
               <span className="pulse-dot"></span>
-              Compilando...
+              {lang === 'va' ? 'Compilant...' : 'Compilando...'}
             </span>
           ) : (
             <span className="status-pill ready">
               <Sparkles className="w-3.5 h-3.5" />
-              WASM Activo
+              {lang === 'va' ? 'WASM Actiu' : 'WASM Activo'}
             </span>
           )}
         </div>

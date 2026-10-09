@@ -282,6 +282,8 @@ export const SAMPLE_EXAMEN_MIXTO_ES = `# TÍTULO: EXAMEN MIXTO
     c) Un hábito individual que carece de consecuencias para otros trabajadores.
     *d) Un acto moral que exige valorar las condiciones humanas y ecológicas de producción.
 
+---
+
 ## PREGUNTAS_DESARROLLO
 1. [2,0 ptos] Explica la distinción moral entre precio y dignidad humana según Immanuel Kant y la Doctrina Social de la Iglesia.
 - Pautas: Diferencia entre cosas intercambiables y sujetos con valor absoluto; concepto de fin en sí mismo vs. medio utilitario.

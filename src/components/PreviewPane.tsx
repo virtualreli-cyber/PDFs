@@ -9,6 +9,8 @@ import {
   ZoomOut,
   Maximize2,
   RotateCcw,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 interface PreviewPaneProps {
@@ -35,6 +37,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   const isVa = lang === 'va';
   const { isCompiling, pdfBlobUrl, pdfBytes, error } = compilationState;
   const [zoom, setZoom] = useState<number>(100);
+  const [page, setPage] = useState<number>(1);
 
   const handleDownload = () => {
     if (!pdfBlobUrl || !pdfBytes) return;
@@ -84,8 +87,32 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           )}
         </div>
 
-        {/* Acciones de zoom y compilación */}
+        {/* Acciones de visualización y compilación */}
         <div className="preview-actions">
+          {/* Navegación rápida de página */}
+          <div className="preview-page-group">
+            <button
+              type="button"
+              className="zoom-btn"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              title={isVa ? 'Pàgina anterior' : 'Página anterior'}
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <span className="page-indicator">
+              {isVa ? 'Pàg.' : 'Pág.'} {page}
+            </span>
+            <button
+              type="button"
+              className="zoom-btn"
+              onClick={() => setPage((p) => p + 1)}
+              title={isVa ? 'Pàgina següent' : 'Página siguiente'}
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
           {/* Controles de Zoom */}
           <div className="preview-zoom-group">
             <button
@@ -124,7 +151,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             </button>
           </div>
 
-          {/* Botón Actualizar */}
+          {/* Botón Actualizar (Único activador de compilación) */}
           <button
             type="button"
             className={`action-btn-small ${hasPendingChanges ? 'btn-pending-changes' : ''}`}
@@ -189,8 +216,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
               }}
             >
               <iframe
-                key={`${pdfBlobUrl}-${zoom}`}
-                src={`${pdfBlobUrl}#toolbar=1&navpanes=0&zoom=${zoom}`}
+                src={`${pdfBlobUrl}#page=${page}&zoom=${zoom}&toolbar=1&navpanes=0`}
                 className="pdf-iframe"
                 title="Vista previa del PDF"
               />
@@ -198,7 +224,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           </div>
         ) : !isCompiling && !error ? (
           <div className="preview-empty-state">
-            <p>{isVa ? 'Escriu o fes clic en Actualitzar per a generar el document.' : 'Escribe o pulsa en Actualizar para generar el documento.'}</p>
+            <p>{isVa ? 'Fes clic en Actualitzar per a generar la vista prèvia del document.' : 'Pulsa en Actualizar para generar la vista previa del documento.'}</p>
           </div>
         ) : null}
       </div>

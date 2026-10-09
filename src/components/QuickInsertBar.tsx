@@ -23,7 +23,7 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
             type="button"
             className="btn-pill"
             onClick={() => onInsert(`\n# BLOQUE 1: ${isVa ? "Títol del bloc temàtic" : "Título del bloque temático"}\n`)}
-            title="Añadir Bloque Temático"
+            title={isVa ? "Afegir bloc temàtic" : "Añadir Bloque Temático"}
           >
             📑 {isVa ? 'Bloc' : 'Bloque'}
           </button>
@@ -32,7 +32,7 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
             type="button"
             className="btn-pill"
             onClick={() => onInsert(`\n### 1.1 ${isVa ? "Títol de l'apartat" : "Título del apartado"}\n`)}
-            title="Añadir Sección / Apartado"
+            title={isVa ? "Afegir secció / apartat" : "Añadir Sección / Apartado"}
           >
             🏷️ {isVa ? 'Apartat' : 'Apartado'}
           </button>
@@ -41,16 +41,16 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
             type="button"
             className="btn-pill pastel-lavender"
             onClick={() => onInsert(`\n> 📖 **[${isVa ? "CITA BÍBLICA / MAGISTERI" : "CITA BÍBLICA / MAGISTERIO"}]:** ${isVa ? "Títol" : "Título"}\n> «${isVa ? "Text de la cita bíblica o magisterial..." : "Texto de la cita bíblica o magisterial..."}»\n> — ${isVa ? "Autor / Document" : "Autor / Documento"}\n`)}
-            title="Caja Cita Bíblica / Magisterio"
+            title={isVa ? "Caixa Cita Bíblica / Magisteri" : "Caja Cita Bíblica / Magisterio"}
           >
-            📖 Cita
+            📖 {isVa ? 'Cita' : 'Cita'}
           </button>
 
           <button
             type="button"
             className="btn-pill pastel-mint"
             onClick={() => onInsert(`\n> 💡 **[${isVa ? "EXEMPLE DEL DIA A DIA" : "EJEMPLO DEL DÍA A DÍA"}]:** ${isVa ? "Títol" : "Título"}\n> ${isVa ? "Descripció de l'exemple quotidià..." : "Descripción del ejemplo cotidiano..."}\n`)}
-            title="Caja Ejemplo del Día a Día"
+            title={isVa ? "Caixa Exemple del Dia a Dia" : "Caja Ejemplo del Día a Día"}
           >
             💡 {isVa ? 'Exemple' : 'Ejemplo'}
           </button>
@@ -59,7 +59,7 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
             type="button"
             className="btn-pill pastel-blue"
             onClick={() => onInsert(`\n> 📚 **[${isVa ? "GLOSSARI" : "GLOSARIO"}]:** ${isVa ? "Concepte clau" : "Concepto clave"}\n> ${isVa ? "Definició breu i precisa del concepte..." : "Definición breve y precisa del concepto..."}\n`)}
-            title="Caja Glosario Conceptual"
+            title={isVa ? "Caixa Glossari Conceptual" : "Caja Glosario Conceptual"}
           >
             📚 {isVa ? 'Glossari' : 'Glosario'}
           </button>
@@ -68,7 +68,7 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
             type="button"
             className="btn-pill pastel-yellow"
             onClick={() => onInsert(`\n> 🏛️ **[${isVa ? "DADA HISTÒRICA" : "UN DATO HISTÓRICO"}]:** ${isVa ? "Títol de l'esdeveniment" : "Título del evento"}\n> ${isVa ? "Ressenya del fet històric rellevant..." : "Reseña del hecho histórico relevante..."}\n`)}
-            title="Caja Dato Histórico"
+            title={isVa ? "Caixa Dada Històrica" : "Caja Dato Histórico"}
           >
             🏛️ {isVa ? 'Història' : 'Histórico'}
           </button>
@@ -77,16 +77,16 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
             type="button"
             className="btn-pill pastel-rose"
             onClick={() => onInsert(`\n> 🎨 **[${isVa ? "ART I SÍMBOL" : "ARTE Y SÍMBOLO"}]:** ${isVa ? "Títol" : "Título"}\n> ${isVa ? "Explicació del símbol cristià o obra d'art..." : "Explicación del símbolo cristiano u obra de arte..."}\n`)}
-            title="Caja Arte y Símbolo"
+            title={isVa ? "Caixa Art i Símbol" : "Caja Arte y Símbolo"}
           >
-            🎨 Arte
+            🎨 {isVa ? 'Art' : 'Arte'}
           </button>
 
           <button
             type="button"
             className="btn-pill pastel-sky"
             onClick={() => onInsert(`\n> 👤 **[${isVa ? "UN TESTIMONI" : "UN TESTIMONIO"}]:** ${isVa ? "Nom" : "Nombre"}\n> ${isVa ? "Relat de vida i compromís de la persona..." : "Relato de vida y compromiso de la persona..."}\n`)}
-            title="Caja Testimonio"
+            title={isVa ? "Caixa Testimoni" : "Caja Testimonio"}
           >
             👤 {isVa ? 'Testimoni' : 'Testimonio'}
           </button>
@@ -95,7 +95,7 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
             type="button"
             className="btn-pill pastel-teal"
             onClick={() => onInsert(`\n> ❓ **[${isVa ? "SABIES QUE...?" : "¿SABÍAS QUE...?"}]:** ${isVa ? "Curiositat" : "Curiosidad"}\n> ${isVa ? "Dada curiosa o d'interés educatiu..." : "Dato curioso o de interés educativo..."}\n`)}
-            title="Caja ¿Sabías que...?"
+            title={isVa ? "Caixa Sabies que...?" : "Caja ¿Sabías que...?"}
           >
             ❓ {isVa ? 'Sabies que' : '¿Sabías que?'}
           </button>
@@ -104,7 +104,7 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
             type="button"
             className="btn-pill pastel-peach"
             onClick={() => onInsert(`\n> 🧭 **[${isVa ? "PER A PENSAR" : "PARA PENSAR"}]:** ${isVa ? "Pregunta de reflexió" : "Pregunta de reflexión"}\n> ${isVa ? "Qüestió per al diàleg o debat ètic..." : "Cuestión para el diálogo o debate ético..."}\n`)}
-            title="Caja Para Pensar"
+            title={isVa ? "Caixa Per a Pensar" : "Caja Para Pensar"}
           >
             🧭 {isVa ? 'Pensar' : 'Pensar'}
           </button>
@@ -113,7 +113,7 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
             type="button"
             className="btn-pill"
             onClick={() => onInsert(`\n<!-- solo-extendido -->\n${isVa ? "Text secundari que s'ometrà en la versió abreujada..." : "Texto secundario que se omitirá en la versión abreviada..."}\n<!-- fin-extendido -->\n`)}
-            title="Omitir en Versión Abreviada"
+            title={isVa ? "Ometre en Versió Abreviada" : "Omitir en Versión Abreviada"}
           >
             ✂️ {isVa ? 'Només estés' : 'Solo extendido'}
           </button>
@@ -122,7 +122,7 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
             type="button"
             className="btn-pill"
             onClick={() => onInsert('\n---\n')}
-            title="Salto de página"
+            title={isVa ? "Salt de pàgina" : "Salto de página"}
           >
             📄 {isVa ? 'Salt de pàgina' : 'Salto pág.'}
           </button>
@@ -140,7 +140,7 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
             type="button"
             className="btn-pill pastel-teal"
             onClick={() => onInsert(`\n1. ¿${isVa ? "Enunciat de la pregunta tipus test?" : "Enunciado de la pregunta tipo test?"}\n   *a) ${isVa ? "Opció correcta (marcada amb *)" : "Opción correcta (marcada con *)"}\n   b) ${isVa ? "Opció distractora 1" : "Opción distractora 1"}\n   c) ${isVa ? "Opció distractora 2" : "Opción distractora 2"}\n   d) ${isVa ? "Opció distractora 3" : "Opción distractora 3"}\n`)}
-            title="Añadir pregunta tipo test con 4 opciones"
+            title={isVa ? "Afegir pregunta tipus test amb 4 opcions" : "Añadir pregunta tipo test con 4 opciones"}
           >
             ❓ {isVa ? 'Pregunta Test' : 'Pregunta Test'}
           </button>
@@ -149,7 +149,7 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
             type="button"
             className="btn-pill pastel-lavender"
             onClick={() => onInsert(`\n1. [2,0 ptos] ${isVa ? "Enunciat de la qüestió de desenvolupament..." : "Enunciado de la cuestión de desarrollo..."}\n- Pautas: ${isVa ? "Criteris de qualificació i termes clau a incloure" : "Criterios de calificación y términos clave a incluir"}\n- Líneas: 6\n`)}
-            title="Añadir pregunta de desarrollo"
+            title={isVa ? "Afegir pregunta de desenvolupament" : "Añadir pregunta de desarrollo"}
           >
             ✍️ {isVa ? 'Desenvolupament' : 'Desarrollo'}
           </button>
@@ -158,7 +158,7 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
             type="button"
             className="btn-pill pastel-peach"
             onClick={() => onInsert(`\n# BLOQUE 1: ${isVa ? "Conceptes clau i definicions (3,0 punts)" : "Conceptos clave y definiciones (3,0 puntos)"}\n`)}
-            title="Añadir bloque temático de desarrollo"
+            title={isVa ? "Afegir bloc temàtic de desenvolupament" : "Añadir bloque temático de desarrollo"}
           >
             📑 {isVa ? 'Bloc temàtic' : 'Bloque'}
           </button>
@@ -167,7 +167,7 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
             type="button"
             className="btn-pill pastel-mint"
             onClick={() => onInsert(`\n> «${isVa ? "Fragment de text per a comentar o analitzar..." : "Fragmento de texto para comentar o analizar..."}» (${isVa ? "Referència bíblica o magisterial" : "Referencia bíblica o magisterial"})\n`)}
-            title="Añadir cita o texto de análisis"
+            title={isVa ? "Afegir cita o text d'anàlisi" : "Añadir cita o texto de análisis"}
           >
             📜 {isVa ? 'Cita Anàlisi' : 'Cita Análisis'}
           </button>
@@ -176,7 +176,7 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
             type="button"
             className="btn-pill"
             onClick={() => onInsert('\n---\n')}
-            title="Salto de página"
+            title={isVa ? "Salt de pàgina" : "Salto de página"}
           >
             📄 {isVa ? 'Salt de pàgina' : 'Salto pág.'}
           </button>
@@ -193,8 +193,8 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
         <button
           type="button"
           className="btn-pill pastel-mint"
-          onClick={() => onInsert(`\n## ACTIVIDAD 1: ${isVa ? "Títol de l'activitat" : "Título de la actividad"}\n- Sesión: 1\n- Tipo: Portfolio\n- Instrucciones: ${isVa ? "Llig amb atenció i respon a les preguntes." : "Lee con atención y responde a las preguntas."}\n`)}
-          title="Nueva actividad (1 página independiente)"
+          onClick={() => onInsert(`\n## ${isVa ? "ACTIVITAT" : "ACTIVIDAD"} 1: ${isVa ? "Títol de l'activitat" : "Título de la actividad"}\n- ${isVa ? "Sessió: 1" : "Sesión: 1"}\n- ${isVa ? "Tipus: Portfoli" : "Tipo: Portfolio"}\n- ${isVa ? "Instruccions:" : "Instrucciones:"} ${isVa ? "Llig amb atenció i respon a les preguntes." : "Lee con atención y responde a las preguntas."}\n`)}
+          title={isVa ? "Nova activitat (1 pàgina independent)" : "Nueva actividad (1 página independiente)"}
         >
           🚀 {isVa ? 'Activitat' : 'Actividad'}
         </button>
@@ -202,8 +202,8 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
         <button
           type="button"
           className="btn-pill pastel-lavender"
-          onClick={() => onInsert(`\n1. ${isVa ? "Enunciat de la qüestió pautada..." : "Enunciado de la cuestión pautada..."}\n[LÍNEAS: 4]\n`)}
-          title="Pregunta con líneas pautadas de escritura"
+          onClick={() => onInsert(`\n1. ${isVa ? "Enunciat de la qüestió pautada..." : "Enunciado de la cuestión pautada..."}\n[${isVa ? "LÍNIES: 4" : "LÍNEAS: 4"}]\n`)}
+          title={isVa ? "Pregunta amb línies pautades d'escriptura" : "Pregunta con líneas pautadas de escritura"}
         >
           ✍️ {isVa ? 'Pregunta Pautada' : 'Pregunta Pautada'}
         </button>
@@ -212,7 +212,7 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
           type="button"
           className="btn-pill pastel-sky"
           onClick={() => onInsert(`\n> 📜 **[${isVa ? "DOCUMENT HISTÒRIC" : "DOCUMENTO HISTÓRICO"}]:** ${isVa ? "Títol del document" : "Título del documento"}\n> «${isVa ? "Text històric o cita d'anàlisi per a l'activitat..." : "Texto histórico o cita de análisis para la actividad..."}»\n`)}
-          title="Caja de fuente o lectura histórica"
+          title={isVa ? "Caixa de font o lectura històrica" : "Caja de fuente o lectura histórica"}
         >
           📜 {isVa ? 'Font Històrica' : 'Fuente Histórica'}
         </button>
@@ -220,17 +220,17 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
         <button
           type="button"
           className="btn-pill pastel-yellow"
-          onClick={() => onInsert(`\n- Tipo: Portfolio\n`)}
-          title="Badge Portfolio"
+          onClick={() => onInsert(`\n- ${isVa ? "Tipus: Portfoli" : "Tipo: Portfolio"}\n`)}
+          title={isVa ? "Etiqueta Portfoli" : "Badge Portfolio"}
         >
-          🏷️ Portfolio
+          🏷️ {isVa ? 'Portfoli' : 'Portfolio'}
         </button>
 
         <button
           type="button"
           className="btn-pill pastel-yellow"
-          onClick={() => onInsert(`\n- Tipo: Proyecto\n`)}
-          title="Badge Proyecto"
+          onClick={() => onInsert(`\n- ${isVa ? "Tipus: Projecte" : "Tipo: Proyecto"}\n`)}
+          title={isVa ? "Etiqueta Projecte" : "Badge Proyecto"}
         >
           🏷️ {isVa ? 'Projecte' : 'Proyecto'}
         </button>
@@ -238,8 +238,8 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
         <button
           type="button"
           className="btn-pill pastel-yellow"
-          onClick={() => onInsert(`\n- Tipo: Reto\n`)}
-          title="Badge Reto"
+          onClick={() => onInsert(`\n- ${isVa ? "Tipus: Repte" : "Tipo: Reto"}\n`)}
+          title={isVa ? "Etiqueta Repte" : "Badge Reto"}
         >
           🏷️ {isVa ? 'Repte' : 'Reto'}
         </button>
@@ -248,7 +248,7 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
           type="button"
           className="btn-pill"
           onClick={() => onInsert('\n---\n')}
-          title="Salto de página"
+          title={isVa ? "Salt de pàgina" : "Salto de página"}
         >
           📄 {isVa ? 'Salt de pàgina' : 'Salto pág.'}
         </button>

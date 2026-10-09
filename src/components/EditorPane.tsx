@@ -89,7 +89,7 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
                   type="button"
                   className="action-btn-small"
                   onClick={onCondenseApuntes}
-                  title="Filtra explicaciones secundarias para reducir por lo menos el 30% del volumen"
+                  title={isVa ? "Filtra explicacions secundàries per a reduir com a mínim el 30% del volum" : "Filtra explicaciones secundarias para reducir por lo menos el 30% del volumen"}
                 >
                   <Scissors className="w-3.5 h-3.5" />
                   <span>{isVa ? 'Condensar text' : 'Condensar texto'}</span>
@@ -113,7 +113,7 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
                   className={`segmented-btn ${examenTipo === 'mixto' ? 'active' : ''}`}
                   onClick={() => onExamenTipoChange('mixto')}
                 >
-                  Mixto
+                  {isVa ? 'Mixte' : 'Mixto'}
                 </button>
                 <button
                   type="button"
@@ -156,7 +156,7 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
             type="button"
             className="action-btn-small"
             onClick={onLoadSample}
-            title="Cargar texto de ejemplo"
+            title={isVa ? "Carregar text d'exemple" : "Cargar texto de ejemplo"}
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>{isVa ? 'Exemple' : 'Ejemplo'}</span>
@@ -165,7 +165,7 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
             type="button"
             className="action-btn-small text-danger"
             onClick={onClear}
-            title="Limpiar editor"
+            title={isVa ? "Netejar editor" : "Limpiar editor"}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>

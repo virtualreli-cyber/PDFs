@@ -11,10 +11,10 @@ export interface TareaActividad {
   preguntas: { num: number; texto: string; lineas: number }[];
 }
 
-export function parseTareasMarkdown(markdown: string) {
-  let curso = "2º ESO";
-  let asignatura = "RELIGIÓN CATÓLICA";
-  let tituloTema = "HISTORIA DE LA IGLESIA PRIMITIVA";
+export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
+  let curso = isVa ? "2n ESO" : "2º ESO";
+  let asignatura = isVa ? "RELIGIÓ CATÒLICA" : "RELIGIÓN CATÓLICA";
+  let tituloTema = isVa ? "HISTÒRIA DE L'ESGLÉSIA PRIMITIVA: MISSIÓ I TESTIMONI" : "HISTORIA DE LA IGLESIA PRIMITIVA: MISIÓN Y TESTIMONIO";
   const actividades: TareaActividad[] = [];
 
   const lines = markdown.split('\n');
@@ -32,11 +32,11 @@ export function parseTareasMarkdown(markdown: string) {
       asignatura = line.substring(line.indexOf(':') + 1).trim();
       continue;
     }
-    if (line.startsWith('# CURSO:')) {
+    if (line.startsWith('# CURSO:') || line.startsWith('# CURS:')) {
       curso = line.substring(line.indexOf(':') + 1).trim();
       continue;
     }
-    if (line.startsWith('# TÍTULO:') || line.startsWith('# TITULO:')) {
+    if (line.startsWith('# TÍTULO:') || line.startsWith('# TITULO:') || line.startsWith('# TÍTOL:')) {
       tituloTema = line.substring(line.indexOf(':') + 1).trim();
       continue;
     }
@@ -51,9 +51,9 @@ export function parseTareasMarkdown(markdown: string) {
       }
       currentAct = {
         num: parseInt(actMatch[1], 10),
-        titulo: actMatch[2].trim() || `Actividad ${actMatch[1]}`,
+        titulo: actMatch[2].trim() || (isVa ? `Activitat ${actMatch[1]}` : `Actividad ${actMatch[1]}`),
         sesion: actMatch[1],
-        tipo: "Portfolio",
+        tipo: isVa ? "Portfoli" : "Portfolio",
         preguntas: []
       };
       actividades.push(currentAct);
@@ -76,10 +76,10 @@ export function parseTareasMarkdown(markdown: string) {
       }
 
       // Cajas de texto / Fuentes
-      if (line.startsWith('> 📜') || line.startsWith('> **[FUENTE') || line.startsWith('> **[FONT') || line.startsWith('> 📖')) {
+      if (line.startsWith('> 📜') || line.startsWith('> **[FUENTE') || line.startsWith('> **[FONT') || line.startsWith('> **[DOCUMENT') || line.startsWith('> 📖')) {
         const headerMatch = line.match(/\*\*\[?(.*?)\]?\*\*:?\s*(.*)/);
         if (headerMatch) {
-          currentAct.fuenteTitulo = headerMatch[2] || "DOCUMENTO HISTÓRICO";
+          currentAct.fuenteTitulo = headerMatch[2] || (isVa ? "DOCUMENT HISTÒRIC" : "DOCUMENTO HISTÓRICO");
         }
         inFuente = true;
         fuenteLines = [];
@@ -132,7 +132,7 @@ function sanitizeForTypst(text: string): string {
 
 export function generateTareasTypst(markdown: string, lang: Language): string {
   const isVa = lang === 'va';
-  const data = parseTareasMarkdown(markdown);
+  const data = parseTareasMarkdown(markdown, isVa);
 
   const headerLeft = `${sanitizeForTypst(data.asignatura).toUpperCase()} • ${sanitizeForTypst(data.curso).toUpperCase()} • ${isVa ? "TASQUES" : "TAREAS"}`;
   const headerRight = sanitizeForTypst(data.tituloTema).toUpperCase();
@@ -173,15 +173,15 @@ ${instrBlock}${fuenteBlock}${preguntasTypst}
 // ==============================================================================
 
 #set document(
-  title: "Tareas - ${sanitizeForTypst(data.tituloTema)}",
+  title: "${isVa ? "Tasques" : "Tareas"} - ${sanitizeForTypst(data.tituloTema)}",
   author: "${deptText}"
 )
 
 #set page(
   paper: "a4",
-  margin: (top: 2.0cm, bottom: 1.8cm, left: 1.5cm, right: 1.5cm),
-  header-ascent: 0.4cm,
-  footer-descent: 0.3cm,
+  margin: (top: 1.8cm, bottom: 1.8cm, left: 1.5cm, right: 1.5cm),
+  header-ascent: 0.6cm,
+  footer-descent: 0.6cm,
   header: context [
     #grid(
       columns: (1fr, auto),
@@ -271,7 +271,7 @@ ${instrBlock}${fuenteBlock}${preguntasTypst}
   ]
 ]
 
-#let pauta-lineas(n, espaciado: 16.0pt) = block(spacing: 5pt)[
+#let pauta-lineas(n, espaciado: 15.0pt) = block(spacing: 5pt)[
   #for _ in range(n) [
     #v(espaciado)
     #line(length: 100%, stroke: (paint: rgb("#CBD5E1"), thickness: 0.6pt, dash: "dotted"))
@@ -290,7 +290,7 @@ ${instrBlock}${fuenteBlock}${preguntasTypst}
   )
 ]
 
-#let caja-instrucciones(titulo: "INSTRUCCIONES", cuerpo: []) = block(breakable: false, width: 100%, spacing: 8pt)[
+#let caja-instrucciones(titulo: "${isVa ? "INSTRUCCIONS" : "INSTRUCCIONES"}", cuerpo: []) = block(breakable: false, width: 100%, spacing: 8pt)[
   #rect(
     width: 100%,
     fill: rgb("#F8FAFC"),
