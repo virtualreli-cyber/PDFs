@@ -1,0 +1,191 @@
+import React, { useRef } from 'react';
+import type { SectionType, Language, ApuntesMode, ExamenTipo, ExamenDocType } from '../types';
+import { QuickInsertBar } from './QuickInsertBar';
+import { RotateCcw, Trash2, Scissors, CheckCircle2 } from 'lucide-react';
+
+interface EditorPaneProps {
+  section: SectionType;
+  lang: Language;
+  markdown: string;
+  onMarkdownChange: (md: string) => void;
+  // Opciones de Apuntes
+  apuntesMode: ApuntesMode;
+  onApuntesModeChange: (mode: ApuntesMode) => void;
+  onCondenseApuntes: () => void;
+  // Opciones de Exámenes
+  examenTipo: ExamenTipo;
+  onExamenTipoChange: (tipo: ExamenTipo) => void;
+  examenDocType: ExamenDocType;
+  onExamenDocTypeChange: (docType: ExamenDocType) => void;
+  // Acciones generales
+  onLoadSample: () => void;
+  onClear: () => void;
+}
+
+export const EditorPane: React.FC<EditorPaneProps> = ({
+  section,
+  lang,
+  markdown,
+  onMarkdownChange,
+  apuntesMode,
+  onApuntesModeChange,
+  onCondenseApuntes,
+  examenTipo,
+  onExamenTipoChange,
+  examenDocType,
+  onExamenDocTypeChange,
+  onLoadSample,
+  onClear,
+}) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isVa = lang === 'va';
+
+  const handleInsert = (snippet: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      onMarkdownChange(markdown + snippet);
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const before = markdown.substring(0, start);
+    const after = markdown.substring(end);
+
+    const newText = before + snippet + after;
+    onMarkdownChange(newText);
+
+    // Reposicionar cursor tras la inserción
+    setTimeout(() => {
+      textarea.focus();
+      const newCursorPos = start + snippet.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+  };
+
+  return (
+    <div className="editor-pane">
+      {/* Barra de opciones de la sección */}
+      <div className="editor-controls-bar">
+        <div className="controls-left">
+          {section === 'apuntes' && (
+            <div className="segmented-group">
+              <button
+                type="button"
+                className={`segmented-btn ${apuntesMode === 'extendido' ? 'active' : ''}`}
+                onClick={() => onApuntesModeChange('extendido')}
+              >
+                {isVa ? 'Versió Estesa' : 'Versión Extendida'}
+              </button>
+              <button
+                type="button"
+                className={`segmented-btn ${apuntesMode === 'abreviado' ? 'active' : ''}`}
+                onClick={() => onApuntesModeChange('abreviado')}
+              >
+                {isVa ? 'Abreujada (-30%)' : 'Abreviada (-30%)'}
+              </button>
+              {apuntesMode === 'abreviado' && (
+                <button
+                  type="button"
+                  className="action-btn-small"
+                  onClick={onCondenseApuntes}
+                  title="Filtra explicaciones secundarias para reducir por lo menos el 30% del volumen"
+                >
+                  <Scissors className="w-3.5 h-3.5" />
+                  <span>{isVa ? 'Condensar text' : 'Condensar texto'}</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {section === 'examenes' && (
+            <div className="exam-controls">
+              <div className="segmented-group">
+                <button
+                  type="button"
+                  className={`segmented-btn ${examenTipo === 'test' ? 'active' : ''}`}
+                  onClick={() => onExamenTipoChange('test')}
+                >
+                  Test (20p)
+                </button>
+                <button
+                  type="button"
+                  className={`segmented-btn ${examenTipo === 'mixto' ? 'active' : ''}`}
+                  onClick={() => onExamenTipoChange('mixto')}
+                >
+                  Mixto
+                </button>
+                <button
+                  type="button"
+                  className={`segmented-btn ${examenTipo === 'desarrollo' ? 'active' : ''}`}
+                  onClick={() => onExamenTipoChange('desarrollo')}
+                >
+                  {isVa ? 'Desenvolupament' : 'Desarrollo'}
+                </button>
+              </div>
+
+              <div className="segmented-group">
+                <button
+                  type="button"
+                  className={`segmented-btn ${examenDocType === 'examen' ? 'active' : ''}`}
+                  onClick={() => onExamenDocTypeChange('examen')}
+                >
+                  Examen
+                </button>
+                <button
+                  type="button"
+                  className={`segmented-btn ${examenDocType === 'solucionario' ? 'active highlight' : ''}`}
+                  onClick={() => onExamenDocTypeChange('solucionario')}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>{isVa ? 'Solucionari' : 'Solucionario'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {section === 'tareas' && (
+            <div className="meta-badge-note">
+              <span>{isVa ? '1 pàgina per activitat + Rúbrica final' : '1 página por actividad + Rúbrica final'}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="controls-right">
+          <button
+            type="button"
+            className="action-btn-small"
+            onClick={onLoadSample}
+            title="Cargar texto de ejemplo"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>{isVa ? 'Exemple' : 'Ejemplo'}</span>
+          </button>
+          <button
+            type="button"
+            className="action-btn-small text-danger"
+            onClick={onClear}
+            title="Limpiar editor"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Barra de inserción rápida */}
+      <QuickInsertBar section={section} lang={lang} onInsert={handleInsert} />
+
+      {/* Área del editor */}
+      <div className="editor-textarea-wrapper">
+        <textarea
+          ref={textareaRef}
+          className="markdown-textarea"
+          value={markdown}
+          onChange={(e) => onMarkdownChange(e.target.value)}
+          placeholder={isVa ? "Introdueix ací el text Markdown..." : "Introduce aquí el texto Markdown..."}
+          spellCheck={false}
+        />
+      </div>
+    </div>
+  );
+};
