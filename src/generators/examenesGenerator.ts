@@ -16,6 +16,13 @@ export interface PreguntaDesarrollo {
   lineas: number;
 }
 
+function sanitizeTypst(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/"/g, '\\"')
+    .replace(/<(?=[0-9a-zA-Z_%])/g, '\\<');
+}
+
 export function parseExamenMarkdown(markdown: string) {
   let titulo = "EXAMEN";
   let subtitulo = "Tema [XX]: [Título de la Unidad]";
@@ -61,7 +68,6 @@ export function parseExamenMarkdown(markdown: string) {
     }
 
     if (currentSection === 'test') {
-      // Pregunta test número: "1. ¿Enunciado?" o "1) ¿Enunciado?"
       const qMatch = line.match(/^(\d+)[\.\)]\s*(.+)/);
       if (qMatch) {
         currentTest = {
@@ -73,7 +79,6 @@ export function parseExamenMarkdown(markdown: string) {
         continue;
       }
 
-      // Opción: "a) ...", "*a) ...", "(a) ..."
       const optMatch = line.match(/^(\*?)\(?([a-dA-D])\)[\.\s]\s*(.+)/);
       if (optMatch && currentTest) {
         const isCorrecta = optMatch[1] === '*' || line.includes('[CORRECTA]') || line.includes('[X]');
@@ -87,7 +92,6 @@ export function parseExamenMarkdown(markdown: string) {
         continue;
       }
     } else {
-      // Pregunta de desarrollo
       const desMatch = line.match(/^(\d+)[\.\)]\s*(?:\[(.*?)\])?\s*(.+)/);
       if (desMatch) {
         currentDes = {
@@ -123,7 +127,7 @@ export function parseExamenMarkdown(markdown: string) {
     }
   }
 
-  // Si no se marcó ninguna opción como correcta, poner por defecto la primera para el solucionario
+  // Si no se marcó ninguna opción como correcta, marcar la primera
   for (const q of preguntasTest) {
     if (!q.opciones.some(o => o.correcta) && q.opciones.length > 0) {
       q.opciones[0].correcta = true;
@@ -156,7 +160,7 @@ export function generateExamenTypst(
 }
 
 // -------------------------------------------------------------
-// 1. SOLUCIONARIO (1 Página limpia oficial)
+// 1. SOLUCIONARIO (1 Página exacta oficial)
 // -------------------------------------------------------------
 function generateSolucionarioTypst(data: any, tipo: ExamenTipo, isVa: boolean): string {
   const headerDept = isVa ? "DEPARTAMENT DE RELIGIÓ CATÒLICA" : "DEPARTAMENTO DE RELIGIÓN CATÓLICA";
@@ -166,7 +170,7 @@ function generateSolucionarioTypst(data: any, tipo: ExamenTipo, isVa: boolean): 
   const respuestasTestTypst = data.preguntasTest.map((q: PreguntaTest) => {
     const optCorrecta = q.opciones.find(o => o.correcta) || q.opciones[0];
     const letra = optCorrecta ? optCorrecta.letra : "a";
-    const texto = optCorrecta ? optCorrecta.texto.replace(/"/g, '\\"') : "";
+    const texto = optCorrecta ? sanitizeTypst(optCorrecta.texto) : "";
     return `  #item-solucionario("${q.num}", "${letra}", "${texto}")`;
   }).join('\n');
 
@@ -178,16 +182,16 @@ function generateSolucionarioTypst(data: any, tipo: ExamenTipo, isVa: boolean): 
   #v(4pt)
   ${data.preguntasDesarrollo.map((d: PreguntaDesarrollo) => `
     #block(fill: rgb("#F8FAFC"), inset: 8pt, radius: 4pt, stroke: 0.5pt + rgb("#CBD5E1"), spacing: 6pt)[
-      #text(9.5pt, weight: "bold", fill: rgb("#334155"))[Qüestió ${d.num} (${d.puntos})]: #text(9.5pt)[${d.enunciado.replace(/"/g, '\\"')}]\\
-      #if "${d.pautas}" != "" [
+      #text(9.5pt, weight: "bold", fill: rgb("#334155"))[Qüestió ${d.num} (${d.puntos})]: #text(9.5pt)[${sanitizeTypst(d.enunciado)}]\\
+      #if "${sanitizeTypst(d.pautas)}" != "" [
         #v(2pt)
-        #text(8.5pt, fill: rgb("#64748B"), style: "italic")[Criteris clau: ${d.pautas.replace(/"/g, '\\"')}]
+        #text(8.5pt, fill: rgb("#64748B"), style: "italic")[Criteris clau: ${sanitizeTypst(d.pautas)}]
       ]
     ]
   `).join('\n')}
   ` : '';
 
-  return `// SOLUCIONARIO OFICIAL
+  return `// SOLUCIONARIO OFICIAL (1 PÁGINA)
 #set document(title: "${titleSol}", author: "Departamento de Religión")
 #set page(
   paper: "a4",
@@ -221,7 +225,8 @@ function generateSolucionarioTypst(data: any, tipo: ExamenTipo, isVa: boolean): 
 
 #let item-solucionario(num, letra, texto) = block(spacing: 5pt)[
   #grid(
-    columns: (24pt, 20pt, 1fr),
+    columns: (22pt, 18pt, 1fr),
+    gutter: 4pt,
     align: (left + horizon, center + horizon, left + horizon),
     text(9.5pt, weight: "bold", fill: rgb("#1E293B"))[#num.],
     box(
@@ -242,13 +247,13 @@ function generateSolucionarioTypst(data: any, tipo: ExamenTipo, isVa: boolean): 
   [
     #text(13pt, weight: "bold", fill: rgb("#1E293B"))[${titleSol}]\\
     #v(2pt)
-    #text(9pt, fill: rgb("#475569"))[${data.curso} • ${data.subtitulo}]
+    #text(9pt, fill: rgb("#475569"))[${sanitizeTypst(data.curso)} • ${sanitizeTypst(data.subtitulo)}]
   ]
 )
 
 #v(8pt)
 
-#columns(2, gutter: 14pt)[
+#columns(2, gutter: 16pt)[
 ${respuestasTestTypst}
 ]
 
@@ -264,26 +269,44 @@ function generateTipoTestTypst(data: any, isVa: boolean): string {
   const numQ = data.preguntasTest.length || 20;
   const puntosPorAcierto = (10 / numQ).toFixed(2).replace('.', ',');
   const instDefault = isVa
-    ? `INSTRUCCIONS: Llig atentament cada qüestió. Marca amb una creu o cercle clar l'opció correcta (a, b, c, d). Cada encert suma ${puntosPorAcierto} punts. Les respostes errònies no descompten.`
-    : `INSTRUCCIONES: Lee atentamente cada cuestión. Marca con una cruz o círculo claro la opción correcta (a, b, c, d). Cada acierto suma ${puntosPorAcierto} puntos. Las respuestas erróneas no restan.`;
-  const instruccionesText = data.instrucciones || instDefault;
+    ? `INSTRUCCIONS: Llig atentament cada qüestió. Marca amb una creu o cercle clar l'opció correcta per a cada enunciat. Cada encert suma ${puntosPorAcierto} punts. Les respostes incorrectes no penalitzen.`
+    : `INSTRUCCIONES: Lee atentamente cada cuestión. Marca con una cruz o círculo claro la opción correcta para cada enunciado. Cada pregunta tiene una única respuesta válida. Calificación: 10 puntos (${puntosPorAcierto} puntos por acierto). Respuestas incorrectas no restan.`;
+  const instruccionesText = data.instrucciones ? sanitizeTypst(data.instrucciones) : instDefault;
 
-  // Dividir preguntas equitativamente entre las 2 páginas
+  const cleanInst = instruccionesText.replace(/^(?:INSTRUCCIONES|INSTRUCCIONS):\s*/i, '');
+
   const half = Math.ceil(data.preguntasTest.length / 2);
   const p1 = data.preguntasTest.slice(0, half);
   const p2 = data.preguntasTest.slice(half);
 
-  function renderList(list: PreguntaTest[]) {
+  const p1Mid = Math.ceil(p1.length / 2);
+  const p1C1 = p1.slice(0, p1Mid);
+  const p1C2 = p1.slice(p1Mid);
+
+  const p2Mid = Math.ceil(p2.length / 2);
+  const p2C1 = p2.slice(0, p2Mid);
+  const p2C2 = p2.slice(p2Mid);
+
+  function renderList(list: PreguntaTest[], spacing: string) {
     return list.map(q => {
-      const opcionesTypst = q.opciones.map(o => `    opcion("${o.letra}", [${o.texto.replace(/"/g, '\\')}])`).join(',\n');
-      return `  pregunta-test("${q.num}", [${q.enunciado.replace(/"/g, '\\')}], (\n${opcionesTypst}\n  ))`;
-    }).join(',\n');
+      const a = q.opciones.find(o => o.letra === 'a')?.texto || '';
+      const b = q.opciones.find(o => o.letra === 'b')?.texto || '';
+      const c = q.opciones.find(o => o.letra === 'c')?.texto || '';
+      const d = q.opciones.find(o => o.letra === 'd')?.texto || '';
+      return `  #pregunta-test(\n    "${q.num}",\n    "${sanitizeTypst(q.enunciado)}",\n    "${sanitizeTypst(a)}",\n    "${sanitizeTypst(b)}",\n    "${sanitizeTypst(c)}",\n    "${sanitizeTypst(d)}",\n    spacing_bottom: ${spacing}\n  )`;
+    }).join('\n\n');
   }
 
-  return `// EXAMEN TIPO TEST (2 PÁGINAS EXACTAS)
-#set document(title: "Examen Tipo Test", author: "Departamento de Religión")
+  return `// =============================================================================
+// PLANTILLA OFICIAL DE EXAMEN - TIPO TEST (2 PÁGINAS EXACTAS)
+// Departamento de Religión Católica
+// =============================================================================
+
+#set document(title: "Examen - Religión Católica", author: "Departamento de Religión")
+
 #set page(
   paper: "a4",
+  flipped: false,
   margin: (top: 1.0cm, bottom: 1.0cm, left: 1.25cm, right: 1.25cm),
   header-ascent: 0.25cm,
   footer-descent: 0.2cm,
@@ -316,80 +339,118 @@ function generateTipoTestTypst(data: any, isVa: boolean): string {
   }
 )
 
-#set text(font: ("Helvetica Neue", "Arial", "sans-serif"), size: 10.5pt, fill: rgb("#1F2937"), lang: "${isVa ? 'ca' : 'es'}")
+#set text(
+  font: ("Helvetica Neue", "Arial", "sans-serif"),
+  size: 10.5pt,
+  fill: rgb("#1F2937"),
+  lang: "${isVa ? 'ca' : 'es'}"
+)
+
 #set par(justify: false, leading: 0.44em)
 
+// COMPONENTES GRÁFICOS
 #let badge(letra) = box(
-  width: 13pt, height: 13pt, radius: 6.5pt,
-  stroke: 0.6pt + rgb("#94A3B8"), fill: rgb("#F8FAFC"),
+  width: 13pt,
+  height: 13pt,
+  radius: 6.5pt,
+  stroke: 0.6pt + rgb("#94A3B8"),
+  fill: rgb("#F8FAFC"),
   align(center + horizon)[#text(size: 8pt, weight: "bold", fill: rgb("#334155"))[#letra]]
 )
 
-#let opcion(letra, texto) = block(spacing: 4.8pt)[
+#let opcion(letra, texto) = block(spacing: 4.5pt)[
   #grid(
     columns: (15.5pt, 1fr),
     gutter: 4.5pt,
     align: (top + center, top + left),
     badge(letra),
-    text(size: 10.8pt, fill: rgb("#334155"))[#texto]
+    par(leading: 0.38em, justify: false)[#text(size: 10.2pt, fill: rgb("#374151"))[#texto]]
   )
 ]
 
-#let pregunta-test(num, enunciado, opciones) = block(breakable: false, spacing: 10pt)[
-  #text(size: 11.2pt, weight: "bold", fill: rgb("#1E293B"))[#num. #enunciado]
-  #v(4pt)
-  #for op in opciones [
-    #op
-  ]
+#let pregunta-test(num, enunciado, a, b, c, d, spacing_bottom: 8.5pt) = block(breakable: false, spacing: spacing_bottom)[
+  #text(size: 10.8pt, fill: rgb("#1E3A8A"), weight: "bold")[#num.] #text(size: 10.8pt, weight: "bold", fill: rgb("#0F172A"))[#enunciado]
+  #v(2.5pt)
+  #opcion("a", a)
+  #opcion("b", b)
+  #opcion("c", c)
+  #opcion("d", d)
 ]
 
 // PÁGINA 1
-#text(size: 8.5pt, weight: "bold", fill: rgb("#475569"))[${headerDept}]
-#v(2pt)
+#grid(
+  columns: (1fr,),
+  align: left,
+  [#text(size: 10.5pt, weight: "bold", tracking: 0.08em, fill: rgb("#1E293B"))[${headerDept}]]
+)
+#v(2.5pt)
 #line(length: 100%, stroke: 1.5pt + rgb("#1E293B"))
-#v(6pt)
+#v(2.5pt)
 
 #grid(
-  columns: (1.5fr, 1fr),
-  gutter: 14pt,
+  columns: (1.1fr, 1fr),
+  gutter: 16pt,
   [
-    #text(size: 17pt, weight: "extrabold", fill: rgb("#1E293B"))[EXAMEN] \\
+    #text(size: 18pt, weight: "bold", fill: rgb("#0F172A"))[EXAMEN] \\
     #v(2pt)
-    #text(size: 9.8pt, weight: "bold", fill: rgb("#475569"))[${data.subtitulo}]
+    #text(size: 10.5pt, style: "italic", fill: rgb("#475569"))[${sanitizeTypst(data.subtitulo)}]
   ],
   [
-    #rect(
-      width: 100%, stroke: 0.6pt + rgb("#CBD5E1"), radius: 4pt, fill: rgb("#F8FAFC"), inset: 6pt,
-      [
-        #text(size: 8.5pt, weight: "bold", fill: rgb("#64748B"))[${isVa ? "ALUMNE/A:" : "ALUMNO/A:"}] #line(length: 100%, stroke: 0.4pt + rgb("#CBD5E1"))
-        #v(3pt)
-        #grid(
-          columns: (1fr, 1.2fr),
-          [#text(size: 8.5pt, weight: "bold", fill: rgb("#64748B"))[${isVa ? "CURS:" : "CURSO:"}] ${data.curso}],
-          [#text(size: 8.5pt, weight: "bold", fill: rgb("#64748B"))[${isVa ? "DATA:" : "FECHA:"}] #line(length: 60%, stroke: 0.4pt + rgb("#CBD5E1"))]
-        )
-      ]
-    )
+    #set text(size: 8.5pt)
+    #rect(width: 100%, stroke: 0.6pt + rgb("#CBD5E1"), radius: 4pt, inset: 6pt, fill: rgb("#F8FAFC"))[
+      #grid(
+        columns: (auto, 1fr),
+        row-gutter: 5pt,
+        gutter: 6pt,
+        [#strong[${isVa ? "ALUMNE/A:" : "ALUMNO/A:"}]], [#line(length: 100%, stroke: 0.6pt + rgb("#94A3B8"))],
+        [#strong[${isVa ? "CURS:" : "CURSO:"}]], [
+          #grid(
+            columns: (1fr, auto, 1fr, auto, 1fr),
+            gutter: 4pt,
+            [#align(left)[#text(size: 8.5pt)[${sanitizeTypst(data.curso)}]]],
+            [#strong[${isVa ? "DATA:" : "FECHA:"}]],
+            [#line(length: 100%, stroke: 0.6pt + rgb("#94A3B8"))],
+            [#strong[NOTA:]],
+            [#line(length: 100%, stroke: 0.6pt + rgb("#94A3B8"))]
+          )
+        ]
+      )
+    ]
   ]
 )
 
-#v(5pt)
-#rect(
-  width: 100%, fill: rgb("#EFF6FF"), stroke: 0.5pt + rgb("#BFDBFE"), radius: 3pt, inset: (x: 8pt, y: 5pt),
-  text(size: 10.2pt, fill: rgb("#1E40AF"))[#strong[${instruccionesText}]]
-)
-#v(6pt)
+#v(2.5pt)
+#line(length: 100%, stroke: 0.6pt + rgb("#E2E8F0"))
+#v(2.5pt)
 
-#columns(2, gutter: 14pt)[
-${renderList(p1)}
+#rect(
+  width: 100%,
+  stroke: 0.6pt + rgb("#BFDBFE"),
+  radius: 3pt,
+  inset: (x: 8pt, y: 4.5pt),
+  fill: rgb("#EFF6FF")
+)[
+  #text(size: 10.0pt, fill: rgb("#1E40AF"))[
+    #strong[${isVa ? "INSTRUCCIONS:" : "INSTRUCCIONES:"}] ${cleanInst}
+  ]
+]
+
+#v(3pt)
+
+#columns(2, gutter: 18pt)[
+${renderList(p1C1, "8.5pt")}
+#colbreak()
+${renderList(p1C2, "8.5pt")}
 ]
 
 #pagebreak()
 
 // PÁGINA 2
-#v(4pt)
-#columns(2, gutter: 14pt)[
-${renderList(p2)}
+#v(6pt)
+#columns(2, gutter: 18pt)[
+${renderList(p2C1, "12pt")}
+#colbreak()
+${renderList(p2C2, "12pt")}
 ]
 `;
 }
@@ -401,30 +462,44 @@ function generateMixtoTypst(data: any, isVa: boolean): string {
   const headerDept = isVa ? "DEPARTAMENT DE RELIGIÓ CATÒLICA" : "DEPARTAMENTO DE RELIGIÓN CATÓLICA";
   const p1Test = data.preguntasTest.slice(0, 10);
   const p2Des = data.preguntasDesarrollo.length > 0 ? data.preguntasDesarrollo.slice(0, 3) : [
-    { num: 1, puntos: "2,0 ptos", enunciado: "Define el concepto fundamental analizado en la unidad y explica su relevancia para la ética cristiana.", pautas: "Claridad conceptual, vocabulario teológico y justificación moral.", lineas: 6 },
-    { num: 2, puntos: "2,0 ptos", enunciado: "Analiza el texto bíblico o magisterial propuesto y extrae dos conclusiones directas.", pautas: "Comprensión del pasaje y relación con el tema.", lineas: 6 },
-    { num: 3, puntos: "2,0 ptos", enunciado: "Aplica los principios estudiados a un dilema actual de la vida social o escolar.", pautas: "Propuestas de compromiso y razonamiento constructivo.", lineas: 6 }
+    { num: 1, puntos: "2,0 ptos", enunciado: "Explica el concepto teológico de 'Dignidad Humana' y sus consecuencias éticas.", pautas: "Fundamentación bíblica, valor inalienable y rechazo de la cultura del descarte.", lineas: 6 },
+    { num: 2, puntos: "2,0 ptos", enunciado: "Lectura y comentario de texto bíblico o magisterial.", pautas: "Comprensión del pasaje y relación con el compromiso social.", lineas: 6 },
+    { num: 3, puntos: "2,0 ptos", enunciado: "Dilema moral y compromiso social cristiano en el entorno cotidiano.", pautas: "Solidaridad, bien común y aplicación práctica.", lineas: 6 }
   ];
 
-  const testListTypst = p1Test.map((q: PreguntaTest) => {
-    const opcionesTypst = q.opciones.map(o => `    opcion("${o.letra}", [${o.texto.replace(/"/g, '\\')}])`).join(',\n');
-    return `  pregunta-test("${q.num}", [${q.enunciado.replace(/"/g, '\\')}], (\n${opcionesTypst}\n  ))`;
-  }).join(',\n');
+  function renderTestQuestions(list: PreguntaTest[]) {
+    return list.map(q => {
+      const a = q.opciones.find(o => o.letra === 'a')?.texto || '';
+      const b = q.opciones.find(o => o.letra === 'b')?.texto || '';
+      const c = q.opciones.find(o => o.letra === 'c')?.texto || '';
+      const d = q.opciones.find(o => o.letra === 'd')?.texto || '';
+      return `  #pregunta-test(\n    "${q.num}",\n    "${sanitizeTypst(q.enunciado)}",\n    "${sanitizeTypst(a)}",\n    "${sanitizeTypst(b)}",\n    "${sanitizeTypst(c)}",\n    "${sanitizeTypst(d)}"\n  )`;
+    }).join('\n\n');
+  }
 
   const desListTypst = p2Des.map((d: PreguntaDesarrollo) => `
-  #pregunta-desarrollo(
-    "${d.num}",
-    "${d.puntos}",
-    [${d.enunciado.replace(/"/g, '\\')}],
-    "${d.pautas.replace(/"/g, '\\')}",
-    ${d.lineas}
+// Pregunta ${d.num}
+#block(breakable: false)[
+  #grid(
+    columns: (1fr, auto),
+    [#text(size: 11.0pt, fill: rgb("#1E3A8A"), weight: "bold")[${d.num}.] #text(size: 11.0pt, weight: "bold", fill: rgb("#0F172A"))[${sanitizeTypst(d.enunciado)}]],
+    [#text(size: 9.5pt, weight: "bold", fill: rgb("#2563EB"))[[${sanitizeTypst(d.puntos)}]]]
   )
-  `).join('\n');
+  ${d.pautas ? `#v(3.5pt)\n  #text(size: 9.8pt, style: "italic", fill: rgb("#64748B"))[Pautas: ${sanitizeTypst(d.pautas)}]` : ''}
+  #lineas-pautadas(${d.lineas || 6})
+]
+`).join('\n#v(16pt)\n');
 
-  return `// EXAMEN MIXTO (P1: TEST, P2: DESARROLLO)
-#set document(title: "Examen Mixto", author: "Departamento de Religión")
+  return `// =============================================================================
+// PLANTILLA OFICIAL DE EXAMEN - MODELO MIXTO (TEST + DESARROLLO)
+// Departamento de Religión Católica
+// =============================================================================
+
+#set document(title: "Examen Mixto - Religión Católica", author: "Departamento de Religión")
+
 #set page(
   paper: "a4",
+  flipped: false,
   margin: (top: 1.0cm, bottom: 1.0cm, left: 1.25cm, right: 1.25cm),
   header-ascent: 0.3cm,
   footer-descent: 0.2cm,
@@ -457,12 +532,22 @@ function generateMixtoTypst(data: any, isVa: boolean): string {
   }
 )
 
-#set text(font: ("Helvetica Neue", "Arial", "sans-serif"), size: 10.5pt, fill: rgb("#1F2937"), lang: "${isVa ? 'ca' : 'es'}")
+#set text(
+  font: ("Helvetica Neue", "Arial", "sans-serif"),
+  size: 10.5pt,
+  fill: rgb("#1F2937"),
+  lang: "${isVa ? 'ca' : 'es'}"
+)
+
 #set par(justify: false, leading: 0.46em)
 
+// COMPONENTES GRÁFICOS
 #let badge(letra) = box(
-  width: 13pt, height: 13pt, radius: 6.5pt,
-  stroke: 0.6pt + rgb("#94A3B8"), fill: rgb("#F8FAFC"),
+  width: 13pt,
+  height: 13pt,
+  radius: 6.5pt,
+  stroke: 0.6pt + rgb("#94A3B8"),
+  fill: rgb("#F8FAFC"),
   align(center + horizon)[#text(size: 8pt, weight: "bold", fill: rgb("#334155"))[#letra]]
 )
 
@@ -472,87 +557,103 @@ function generateMixtoTypst(data: any, isVa: boolean): string {
     gutter: 4.5pt,
     align: (top + center, top + left),
     badge(letra),
-    text(size: 10.8pt, fill: rgb("#334155"))[#texto]
+    par(leading: 0.38em, justify: false)[#text(size: 10.5pt, fill: rgb("#374151"))[#texto]]
   )
 ]
 
-#let pregunta-test(num, enunciado, opciones) = block(breakable: false, spacing: 9pt)[
-  #text(size: 11.2pt, weight: "bold", fill: rgb("#1E293B"))[#num. #enunciado]
+#let pregunta-test(num, enunciado, a, b, c, d, spacing_bottom: 10.5pt) = block(breakable: false, spacing: spacing_bottom)[
+  #text(size: 11.0pt, fill: rgb("#1E3A8A"), weight: "bold")[#num.] #text(size: 11.0pt, weight: "bold", fill: rgb("#0F172A"))[#enunciado]
   #v(3.5pt)
-  #for op in opciones [
-    #op
-  ]
+  #opcion("a", a)
+  #opcion("b", b)
+  #opcion("c", c)
+  #opcion("d", d)
 ]
 
-#let lineas-pautadas(n, espaciado: 12.5pt) = block(spacing: 5pt)[
+#let lineas-pautadas(n, espaciado: 13.0pt) = block(spacing: 5pt)[
   #for _ in range(n) [
     #v(espaciado)
     #line(length: 100%, stroke: (paint: rgb("#CBD5E1"), thickness: 0.6pt, dash: "dotted"))
   ]
 ]
 
-#let pregunta-desarrollo(num, puntos, enunciado, pautas, lineas) = block(breakable: false, spacing: 14pt)[
-  #grid(
-    columns: (1fr, auto),
-    text(size: 11.2pt, weight: "bold", fill: rgb("#1E293B"))[#num. #enunciado],
-    box(fill: rgb("#EFF6FF"), inset: (x: 5pt, y: 2pt), radius: 3pt, text(size: 8.5pt, weight: "bold", fill: rgb("#1E40AF"))[#puntos])
-  )
-  #if pautas != "" [
-    #v(2.5pt)
-    #text(size: 9.8pt, fill: rgb("#64748B"), style: "italic")[Pautas: #pautas]
-  ]
-  #v(4pt)
-  #lineas-pautadas(lineas)
-]
-
 // PÁGINA 1: TEST
-#text(size: 8.5pt, weight: "bold", fill: rgb("#475569"))[${headerDept}]
-#v(2pt)
+#grid(
+  columns: (1fr,),
+  align: left,
+  [#text(size: 10.5pt, weight: "bold", tracking: 0.08em, fill: rgb("#1E293B"))[${headerDept}]]
+)
+#v(3pt)
 #line(length: 100%, stroke: 1.5pt + rgb("#1E293B"))
-#v(6pt)
+#v(3pt)
 
 #grid(
-  columns: (1.5fr, 1fr),
-  gutter: 14pt,
+  columns: (1.1fr, 1fr),
+  gutter: 16pt,
   [
-    #text(size: 17pt, weight: "extrabold", fill: rgb("#1E293B"))[EXAMEN MIXTO] \\
+    #text(size: 17pt, weight: "bold", fill: rgb("#0F172A"))[EXAMEN MIXTO] \\
     #v(2pt)
-    #text(size: 9.8pt, weight: "bold", fill: rgb("#475569"))[${data.subtitulo}]
+    #text(size: 10.5pt, style: "italic", fill: rgb("#475569"))[${sanitizeTypst(data.subtitulo)}]
   ],
   [
-    #rect(
-      width: 100%, stroke: 0.6pt + rgb("#CBD5E1"), radius: 4pt, fill: rgb("#F8FAFC"), inset: 6pt,
-      [
-        #text(size: 8.5pt, weight: "bold", fill: rgb("#64748B"))[${isVa ? "ALUMNE/A:" : "ALUMNO/A:"}] #line(length: 100%, stroke: 0.4pt + rgb("#CBD5E1"))
-        #v(3pt)
-        #grid(
-          columns: (1fr, 1.2fr),
-          [#text(size: 8.5pt, weight: "bold", fill: rgb("#64748B"))[${isVa ? "CURS:" : "CURSO:"}] ${data.curso}],
-          [#text(size: 8.5pt, weight: "bold", fill: rgb("#64748B"))[${isVa ? "DATA:" : "FECHA:"}] #line(length: 60%, stroke: 0.4pt + rgb("#CBD5E1"))]
-        )
-      ]
-    )
+    #set text(size: 8.5pt)
+    #rect(width: 100%, stroke: 0.6pt + rgb("#CBD5E1"), radius: 4pt, inset: 6pt, fill: rgb("#F8FAFC"))[
+      #grid(
+        columns: (auto, 1fr),
+        row-gutter: 5pt,
+        gutter: 6pt,
+        [#strong[${isVa ? "ALUMNE/A:" : "ALUMNO/A:"}]], [#line(length: 100%, stroke: 0.6pt + rgb("#94A3B8"))],
+        [#strong[${isVa ? "CURS:" : "CURSO:"}]], [
+          #grid(
+            columns: (1fr, auto, 1fr, auto, 1fr),
+            gutter: 4pt,
+            [#align(left)[#text(size: 8.5pt)[${sanitizeTypst(data.curso)}]]],
+            [#strong[${isVa ? "DATA:" : "FECHA:"}]],
+            [#line(length: 100%, stroke: 0.6pt + rgb("#94A3B8"))],
+            [#strong[NOTA:]],
+            [#line(length: 100%, stroke: 0.6pt + rgb("#94A3B8"))]
+          )
+        ]
+      )
+    ]
   ]
 )
 
-#v(5pt)
-#rect(
-  width: 100%, fill: rgb("#EFF6FF"), stroke: 0.5pt + rgb("#BFDBFE"), radius: 3pt, inset: (x: 8pt, y: 5pt),
-  text(size: 10.2pt, fill: rgb("#1E40AF"))[#strong[PARTE I: TEST (4,0 PUNTOS). 10 preguntas (0,40 ptos por acierto). Sin penalización.]]
-)
-#v(6pt)
+#v(2.5pt)
+#line(length: 100%, stroke: 0.6pt + rgb("#E2E8F0"))
+#v(2.5pt)
 
-#columns(2, gutter: 14pt)[
-${testListTypst}
+#rect(
+  width: 100%,
+  stroke: 0.6pt + rgb("#BFDBFE"),
+  radius: 3pt,
+  inset: (x: 8pt, y: 4.5pt),
+  fill: rgb("#EFF6FF")
+)[
+  #text(size: 10.2pt, fill: rgb("#1E40AF"))[
+    #strong[PARTE I: PREGUNTAS TIPO TEST (4,0 PUNTOS).] 10 cuestiones (0,40 ptos por acierto). Sin penalización.
+  ]
+]
+
+#v(3.5pt)
+
+#columns(2, gutter: 18pt)[
+${renderTestQuestions(p1Test)}
 ]
 
 #pagebreak()
 
 // PÁGINA 2: DESARROLLO
-#rect(
-  width: 100%, fill: rgb("#F8FAFC"), stroke: 0.5pt + rgb("#CBD5E1"), radius: 3pt, inset: (x: 8pt, y: 5pt),
-  text(size: 10.2pt, fill: rgb("#334155"))[#strong[PARTE II: DESARROLLO Y RAZONAMIENTO (6,0 PUNTOS). Responde con claridad en el espacio pautado.]]
-)
+#v(4pt)
+#block(
+  fill: rgb("#F1F5F9"),
+  inset: (x: 8pt, y: 4.5pt),
+  radius: 3pt,
+  width: 100%
+)[
+  #text(weight: "bold", size: 10.5pt, fill: rgb("#0F172A"))[PARTE II: PREGUNTAS DE DESARROLLO Y RAZONAMIENTO (Valor total: 6,0 puntos — 2,0 ptos cada cuestión)]
+]
+
 #v(10pt)
 
 ${desListTypst}
@@ -565,31 +666,39 @@ ${desListTypst}
 function generateDesarrolloTypst(data: any, isVa: boolean): string {
   const headerDept = isVa ? "DEPARTAMENT DE RELIGIÓ CATÒLICA" : "DEPARTAMENTO DE RELIGIÓN CATÓLICA";
   const items = data.preguntasDesarrollo.length >= 4 ? data.preguntasDesarrollo : [
-    { num: 1, puntos: "3,0 ptos", enunciado: "Conceptos clave y vocabulario fundamental de la unidad.", pautas: "Define con precisión los términos nucleares y su fundamentación cristiana.", lineas: 8 },
-    { num: 2, puntos: "2,5 ptos", enunciado: "Análisis y comentario de texto bíblico o magisterial.", pautas: "Identifica la idea principal y relaciónala con la enseñanza de la Iglesia.", lineas: 8 },
-    { num: 3, puntos: "2,5 ptos", enunciado: "Desarrollo temático y síntesis conceptual.", pautas: "Estructura la respuesta de forma lógica, clara y argumentada.", lineas: 8 },
-    { num: 4, puntos: "2,0 ptos", enunciado: "Aplicación moral, dilema ético y compromiso cristiano en la vida cotidiana.", pautas: "Propón acciones coherentes y fundamenta tu juicio moral.", lineas: 8 }
+    { num: 1, puntos: "3,0 ptos", enunciado: "CONCEPTOS CLAVE Y FUNDAMENTACIÓN DOCTRINAL: La dignidad humana frente a la cultura del descarte y el utilitarismo.", pautas: "Define el concepto de dignidad como valor intrínseco e inalienable derivado de la creación a imagen de Dios.", lineas: 8 },
+    { num: 2, puntos: "2,5 ptos", enunciado: "ANÁLISIS Y COMENTARIO DE TEXTO: Comentario de la encíclica social «Gaudium et Spes», n. 24.", pautas: "Explica el significado teológico de ser amado 'por sí mismo' y relacionalo con la regla de oro.", lineas: 8 },
+    { num: 3, puntos: "2,5 ptos", enunciado: "DOCTRINA SOCIAL Y BIEN COMÚN: El destino universal de los bienes y la función social de la propiedad.", pautas: "Expón por qué los recursos creados pertenecen originariamente a toda la humanidad y explica la hipoteca social.", lineas: 8 },
+    { num: 4, puntos: "2,0 ptos", enunciado: "APLICACIÓN PRÁCTICA Y COMPROMISO: Juicio moral y consumo responsable en la vida cotidiana.", pautas: "Analiza el impacto del consumo en los vulnerables y propón compromisos cristianos coherentes.", lineas: 8 }
   ];
 
   const p1 = items.slice(0, 2);
   const p2 = items.slice(2);
 
-  function renderDesList(list: PreguntaDesarrollo[]) {
-    return list.map(d => `
-    #pregunta-desarrollo(
-      "${d.num}",
-      "${d.puntos}",
-      [${d.enunciado.replace(/"/g, '\\')}],
-      "${d.pautas.replace(/"/g, '\\')}",
-      ${d.lineas || 8}
-    )
-    `).join('\n');
+  function renderDesBlocks(list: PreguntaDesarrollo[], startIdx: number) {
+    return list.map((d, i) => {
+      const blockNum = startIdx + i;
+      return `
+#seccion[BLOQUE ${blockNum}: ${sanitizeTypst(d.enunciado)} (Valor: ${sanitizeTypst(d.puntos)})]
+#v(4pt)
+#block(breakable: false)[
+  ${d.pautas ? `#text(size: 9.8pt, style: "italic", fill: rgb("#64748B"))[Criterios / Pautas: ${sanitizeTypst(d.pautas)}]\n  #v(2.5pt)` : ''}
+  #lineas-pautadas(${d.lineas || 8})
+]
+`;
+    }).join('\n#v(14pt)\n');
   }
 
-  return `// EXAMEN DE DESARROLLO COMPLETO (2 PÁGINAS EXACTAS)
-#set document(title: "Examen de Desarrollo", author: "Departamento de Religión")
+  return `// =============================================================================
+// PLANTILLA OFICIAL DE EXAMEN - MODELO DE DESARROLLO COMPLETO
+// Departamento de Religión Católica (2 Páginas Exactas)
+// =============================================================================
+
+#set document(title: "Examen de Desarrollo - Religión Católica", author: "Departamento de Religión")
+
 #set page(
   paper: "a4",
+  flipped: false,
   margin: (top: 1.0cm, bottom: 1.0cm, left: 1.25cm, right: 1.25cm),
   header-ascent: 0.25cm,
   footer-descent: 0.2cm,
@@ -622,73 +731,98 @@ function generateDesarrolloTypst(data: any, isVa: boolean): string {
   }
 )
 
-#set text(font: ("Helvetica Neue", "Arial", "sans-serif"), size: 10.5pt, fill: rgb("#1F2937"), lang: "${isVa ? 'ca' : 'es'}")
+#set text(
+  font: ("Helvetica Neue", "Arial", "sans-serif"),
+  size: 10.5pt,
+  fill: rgb("#1F2937"),
+  lang: "${isVa ? 'ca' : 'es'}"
+)
+
 #set par(justify: false, leading: 0.48em)
 
-#let lineas-pautadas(n, espaciado: 13.0pt) = block(spacing: 6pt)[
+#let lineas-pautadas(n, espaciado: 13.0pt) = block(spacing: 5pt)[
   #for _ in range(n) [
     #v(espaciado)
     #line(length: 100%, stroke: (paint: rgb("#CBD5E1"), thickness: 0.6pt, dash: "dotted"))
   ]
 ]
 
-#let pregunta-desarrollo(num, puntos, enunciado, pautas, lineas) = block(breakable: false, spacing: 16pt)[
-  #grid(
-    columns: (1fr, auto),
-    text(size: 11.2pt, weight: "bold", fill: rgb("#1E293B"))[BLOQUE #num: #enunciado],
-    box(fill: rgb("#EFF6FF"), inset: (x: 6pt, y: 2.5pt), radius: 3pt, text(size: 9pt, weight: "bold", fill: rgb("#1E40AF"))[#puntos])
-  )
-  #if pautas != "" [
-    #v(3pt)
-    #text(size: 9.8pt, fill: rgb("#64748B"), style: "italic")[Criterios / Pautas: #pautas]
-  ]
-  #v(4pt)
-  #lineas-pautadas(lineas)
+#let seccion(titulo) = block(
+  width: 100%,
+  fill: rgb("#F1F5F9"),
+  inset: (x: 8pt, y: 5pt),
+  radius: 3pt,
+  spacing: 8pt
+)[
+  #text(weight: "bold", size: 10.5pt, fill: rgb("#0F172A"))[#titulo]
 ]
 
 // PÁGINA 1
-#text(size: 8.5pt, weight: "bold", fill: rgb("#475569"))[${headerDept}]
-#v(2pt)
+#grid(
+  columns: (1fr,),
+  align: left,
+  [#text(size: 10.5pt, weight: "bold", tracking: 0.08em, fill: rgb("#1E293B"))[${headerDept}]]
+)
+#v(3pt)
 #line(length: 100%, stroke: 1.5pt + rgb("#1E293B"))
-#v(6pt)
+#v(3pt)
 
 #grid(
-  columns: (1.5fr, 1fr),
-  gutter: 14pt,
+  columns: (1.1fr, 1fr),
+  gutter: 16pt,
   [
-    #text(size: 16pt, weight: "extrabold", fill: rgb("#1E293B"))[EXAMEN DE DESARROLLO] \\
+    #text(size: 17pt, weight: "bold", fill: rgb("#0F172A"))[EXAMEN DE DESARROLLO] \\
     #v(2pt)
-    #text(size: 9.8pt, weight: "bold", fill: rgb("#475569"))[${data.subtitulo}]
+    #text(size: 10.5pt, style: "italic", fill: rgb("#475569"))[${sanitizeTypst(data.subtitulo)}]
   ],
   [
-    #rect(
-      width: 100%, stroke: 0.6pt + rgb("#CBD5E1"), radius: 4pt, fill: rgb("#F8FAFC"), inset: 6pt,
-      [
-        #text(size: 8.5pt, weight: "bold", fill: rgb("#64748B"))[${isVa ? "ALUMNE/A:" : "ALUMNO/A:"}] #line(length: 100%, stroke: 0.4pt + rgb("#CBD5E1"))
-        #v(3pt)
-        #grid(
-          columns: (1fr, 1.2fr),
-          [#text(size: 8.5pt, weight: "bold", fill: rgb("#64748B"))[${isVa ? "CURS:" : "CURSO:"}] ${data.curso}],
-          [#text(size: 8.5pt, weight: "bold", fill: rgb("#64748B"))[${isVa ? "DATA:" : "FECHA:"}] #line(length: 60%, stroke: 0.4pt + rgb("#CBD5E1"))]
-        )
-      ]
-    )
+    #set text(size: 8.5pt)
+    #rect(width: 100%, stroke: 0.6pt + rgb("#CBD5E1"), radius: 4pt, inset: 6.5pt, fill: rgb("#F8FAFC"))[
+      #grid(
+        columns: (auto, 1fr),
+        row-gutter: 5pt,
+        gutter: 6pt,
+        [#strong[${isVa ? "ALUMNE/A:" : "ALUMNO/A:"}]], [#line(length: 100%, stroke: 0.6pt + rgb("#94A3B8"))],
+        [#strong[${isVa ? "CURS:" : "CURSO:"}]], [
+          #grid(
+            columns: (1fr, auto, 1fr, auto, 1fr),
+            gutter: 4pt,
+            [#align(left)[#text(size: 8.5pt)[${sanitizeTypst(data.curso)}]]],
+            [#strong[${isVa ? "DATA:" : "FECHA:"}]],
+            [#line(length: 100%, stroke: 0.6pt + rgb("#94A3B8"))],
+            [#strong[NOTA:]],
+            [#line(length: 100%, stroke: 0.6pt + rgb("#94A3B8"))]
+          )
+        ]
+      )
+    ]
   ]
 )
 
-#v(5pt)
-#rect(
-  width: 100%, fill: rgb("#EFF6FF"), stroke: 0.5pt + rgb("#BFDBFE"), radius: 3pt, inset: (x: 8pt, y: 5pt),
-  text(size: 10.2pt, fill: rgb("#1E40AF"))[#strong[INSTRUCCIONES: Redacta tus respuestas con orden, claridad y corrección ortográfica en las líneas asignadas.]]
-)
-#v(8pt)
+#v(3pt)
+#line(length: 100%, stroke: 0.6pt + rgb("#E2E8F0"))
+#v(3pt)
 
-${renderDesList(p1)}
+#rect(
+  width: 100%,
+  stroke: 0.6pt + rgb("#BFDBFE"),
+  radius: 3pt,
+  inset: (x: 8pt, y: 4.5pt),
+  fill: rgb("#EFF6FF")
+)[
+  #text(size: 9.8pt, fill: rgb("#1E40AF"))[
+    #strong[CRITERIOS DE CALIFICACIÓN:] Se valorará la claridad expositiva, la precisión teológica y conceptual, la argumentación coherente a partir de fuentes cristianas y la corrección ortográfica. Puntuación máxima: 10 puntos.
+  ]
+]
+
+#v(6pt)
+
+${renderDesBlocks(p1, 1)}
 
 #pagebreak()
 
 // PÁGINA 2
 #v(4pt)
-${renderDesList(p2)}
+${renderDesBlocks(p2, 3)}
 `;
 }

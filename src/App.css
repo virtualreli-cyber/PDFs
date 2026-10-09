@@ -470,17 +470,47 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  max-width: 360px;
 }
 
-.file-name {
-  font-size: 12px;
-  font-weight: 700;
+.file-name-input {
+  width: 100%;
+  font-size: 11.5px;
+  font-weight: 600;
   color: var(--color-primary-dark);
   font-family: var(--font-mono);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  background-color: #FFFFFF;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 3px 8px;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.file-name-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.btn-icon-subtle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: #64748B;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.btn-icon-subtle:hover {
+  background-color: #EDF2F7;
+  color: var(--color-primary);
 }
 
 .preview-actions {
@@ -488,6 +518,78 @@ body {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+}
+
+.preview-zoom-group {
+  display: flex;
+  align-items: center;
+  background-color: #EDF2F7;
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #475569;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.zoom-btn:hover:not(:disabled) {
+  background-color: white;
+  color: var(--color-primary-dark);
+}
+
+.zoom-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.zoom-level-btn {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: #334155;
+  background: transparent;
+  border: none;
+  padding: 0 5px;
+  height: 24px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.zoom-level-btn:hover {
+  background-color: white;
+  color: var(--color-primary);
+}
+
+.btn-pending-changes {
+  background-color: #FEF3C7 !important;
+  border-color: #F59E0B !important;
+  color: #92400E !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+  animation: pendingPulse 1.4s infinite alternate;
+}
+
+@keyframes pendingPulse {
+  from {
+    transform: scale(1);
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+  }
+  to {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.35);
+  }
 }
 
 .btn-download {
@@ -521,6 +623,21 @@ body {
   position: relative;
   background-color: #4A5568;
   overflow: hidden;
+}
+
+.pdf-viewport {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: #4A5568;
+  display: flex;
+  justify-content: center;
+}
+
+.pdf-scale-container {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
 }
 
 .pdf-iframe {

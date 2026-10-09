@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { SectionType, Language, ApuntesMode, ExamenTipo, ExamenDocType, CompilationState } from './types';
 import { Header } from './components/Header';
 import { EditorPane } from './components/EditorPane';
@@ -34,6 +34,9 @@ export function App() {
   // Estados específicos de Tareas
   const [tareasMd, setTareasMd] = useState<string>(SAMPLE_TAREAS_ES);
 
+  // Nombre de archivo personalizado (si el usuario lo edita)
+  const [customFilename, setCustomFilename] = useState<string | null>(null);
+
   // Estado de compilación y visor
   const [compilationState, setCompilationState] = useState<CompilationState>({
     isCompiling: false,
@@ -44,21 +47,23 @@ export function App() {
     lastCompiledAt: null,
   });
 
-  const compileTimeoutRef = useRef<number | null>(null);
+  // Código Typst de la última compilación exitosa
+  const [lastCompiledTypst, setLastCompiledTypst] = useState<string>('');
+
   const activeBlobUrlRef = useRef<string | null>(null);
 
   // Obtener texto markdown actual según la sección activa
   const currentMarkdown = section === 'apuntes' ? apuntesMd : section === 'examenes' ? examenesMd : tareasMd;
 
-  // Manejar cambio de texto en el editor
+  // Manejar cambio de texto en el editor (NO recompila automáticamente)
   const handleMarkdownChange = (newText: string) => {
     if (section === 'apuntes') setApuntesMd(newText);
     else if (section === 'examenes') setExamenesMd(newText);
     else setTareasMd(newText);
   };
 
-  // Calcular nombre de archivo canónico oficial (GEMINI.md)
-  const getCanonicalFilename = useCallback((): string => {
+  // Calcular nombre de archivo canónico oficial
+  const canonicalFilename = useMemo((): string => {
     const isVa = lang === 'va';
     const langCode = isVa ? 'V' : 'C';
 
@@ -78,6 +83,9 @@ export function App() {
     return `TA - 2E - ${langCode} - Historia de la Iglesia Primitiva - Dossier de tareas.pdf`;
   }, [section, lang, apuntesMode, examenTipo, examenDocType]);
 
+  // Nombre efectivo: personalizado o canónico
+  const effectiveFilename = customFilename !== null ? customFilename : canonicalFilename;
+
   // Generador de código Typst según estado actual
   const buildTypstSource = useCallback((): string => {
     if (section === 'apuntes') {
@@ -89,7 +97,13 @@ export function App() {
     return generateTareasTypst(tareasMd, lang);
   }, [section, apuntesMd, apuntesMode, examenesMd, examenTipo, examenDocType, tareasMd, lang]);
 
-  // Función de compilación a PDF
+  // Código Typst actual
+  const currentTypstCode = buildTypstSource();
+
+  // Hay cambios pendientes sin compilar
+  const hasPendingChanges = lastCompiledTypst !== '' && currentTypstCode !== lastCompiledTypst && !compilationState.isCompiling;
+
+  // Función de compilación a PDF bajo demanda
   const triggerCompilation = useCallback(async () => {
     setCompilationState((prev) => ({ ...prev, isCompiling: true, error: null }));
 
@@ -107,6 +121,7 @@ export function App() {
       }
       activeBlobUrlRef.current = newBlobUrl;
 
+      setLastCompiledTypst(typstCode);
       setCompilationState({
         isCompiling: false,
         pdfBlobUrl: newBlobUrl,
@@ -125,22 +140,10 @@ export function App() {
     }
   }, [buildTypstSource]);
 
-  // Efecto con debounce para recompilar automáticamente al modificar el texto o los parámetros
+  // Compilar en la carga inicial y al cambiar de sección / idioma / modalidad principal
   useEffect(() => {
-    if (compileTimeoutRef.current) {
-      clearTimeout(compileTimeoutRef.current);
-    }
-
-    compileTimeoutRef.current = setTimeout(() => {
-      triggerCompilation();
-    }, 450);
-
-    return () => {
-      if (compileTimeoutRef.current) {
-        clearTimeout(compileTimeoutRef.current);
-      }
-    };
-  }, [triggerCompilation]);
+    triggerCompilation();
+  }, [section, lang, apuntesMode, examenTipo, examenDocType]);
 
   // Cargar ejemplo para la sección activa
   const handleLoadSample = () => {
@@ -154,6 +157,7 @@ export function App() {
     } else {
       setTareasMd(isVa ? SAMPLE_TAREAS_VA : SAMPLE_TAREAS_ES);
     }
+    setCustomFilename(null);
   };
 
   // Limpiar editor
@@ -163,7 +167,6 @@ export function App() {
 
   // Condensar apuntes automáticamente (reducción >= 30% determinista)
   const handleCondenseApuntes = () => {
-    // 1. Quitar cajas secundarias de ejemplos cotidianos y reflexiones largas si no son citas bíblicas o glosario
     let condensed = apuntesMd
       .replace(/> 💡 \*\*\[EJEMPLO.*?\]\*\*:?[\s\S]*?(?=\n\n|\n#|$)/gi, '')
       .replace(/> 💡 \*\*\[EXEMPLE.*?\]\*\*:?[\s\S]*?(?=\n\n|\n#|$)/gi, '')
@@ -173,12 +176,9 @@ export function App() {
       .replace(/> ❓ \*\*\[¿SABÍAS.*?\]\*\*:?[\s\S]*?(?=\n\n|\n#|$)/gi, '')
       .replace(/<!-- solo-extendido -->[\s\S]*?<!-- fin-extendido -->/gi, '');
 
-    // 2. Si el texto sigue siendo muy largo, condensar párrafos explicativos secundarios
     const lines = condensed.split('\n');
     const filteredLines = lines.filter((l) => {
-      // Mantener títulos, bloques, citas bíblicas, glosario y metadatos
       if (l.startsWith('#') || l.startsWith('>') || l.startsWith('-') || l.trim() === '---') return true;
-      // Mantener párrafos esenciales y acortar desarrollos extensos
       return l.length < 320;
     });
 
@@ -189,6 +189,7 @@ export function App() {
   // Sincronizar plantilla de ejemplo al cambiar idioma si el usuario no ha escrito mucho
   const handleLangChange = (newLang: Language) => {
     setLang(newLang);
+    setCustomFilename(null);
     if (section === 'apuntes') {
       if (apuntesMd === SAMPLE_APUNTES_ES || apuntesMd === SAMPLE_APUNTES_VA) {
         setApuntesMd(newLang === 'va' ? SAMPLE_APUNTES_VA : SAMPLE_APUNTES_ES);
@@ -200,9 +201,16 @@ export function App() {
     }
   };
 
-  // Al cambiar el tipo de examen, cargar el ejemplo si está en valores predeterminados
+  // Al cambiar sección, reiniciar customFilename
+  const handleSectionChange = (newSection: SectionType) => {
+    setSection(newSection);
+    setCustomFilename(null);
+  };
+
+  // Al cambiar el tipo de examen
   const handleExamenTipoChange = (tipo: ExamenTipo) => {
     setExamenTipo(tipo);
+    setCustomFilename(null);
     if (tipo === 'test' && (examenesMd === SAMPLE_EXAMEN_MIXTO_ES || examenesMd === SAMPLE_EXAMEN_DESARROLLO_ES)) {
       setExamenesMd(SAMPLE_EXAMEN_TEST_ES);
     } else if (tipo === 'mixto' && (examenesMd === SAMPLE_EXAMEN_TEST_ES || examenesMd === SAMPLE_EXAMEN_DESARROLLO_ES)) {
@@ -216,7 +224,7 @@ export function App() {
     <div className="app-container">
       <Header
         currentSection={section}
-        onSectionChange={setSection}
+        onSectionChange={handleSectionChange}
         lang={lang}
         onLangChange={handleLangChange}
         isCompiling={compilationState.isCompiling}
@@ -229,20 +237,30 @@ export function App() {
           markdown={currentMarkdown}
           onMarkdownChange={handleMarkdownChange}
           apuntesMode={apuntesMode}
-          onApuntesModeChange={setApuntesMode}
+          onApuntesModeChange={(mode) => {
+            setApuntesMode(mode);
+            setCustomFilename(null);
+          }}
           onCondenseApuntes={handleCondenseApuntes}
           examenTipo={examenTipo}
           onExamenTipoChange={handleExamenTipoChange}
           examenDocType={examenDocType}
-          onExamenDocTypeChange={setExamenDocType}
+          onExamenDocTypeChange={(docType) => {
+            setExamenDocType(docType);
+            setCustomFilename(null);
+          }}
           onLoadSample={handleLoadSample}
           onClear={handleClear}
         />
 
         <PreviewPane
           compilationState={compilationState}
-          filename={getCanonicalFilename()}
+          filename={effectiveFilename}
+          isCustomFilename={customFilename !== null}
+          onFilenameChange={(name) => setCustomFilename(name)}
+          onResetFilename={() => setCustomFilename(null)}
           lang={lang}
+          hasPendingChanges={hasPendingChanges}
           onRecompile={triggerCompilation}
         />
       </main>

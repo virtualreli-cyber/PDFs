@@ -9,6 +9,13 @@ export interface ApuntesParsedData {
   contentTypst: string;
 }
 
+function sanitizeTypst(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/"/g, '\\"')
+    .replace(/<(?=[0-9a-zA-Z_%])/g, '\\<');
+}
+
 export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: Language): string {
   // Filtrar bloques según el modo
   let processedMd = markdown;
@@ -36,15 +43,50 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
   const bodyTypst: string[] = [];
 
   let inQuote = false;
-  let quoteType = "EJEMPLO";
+  let quoteType: 'CITA' | 'EJEMPLO' | 'GLOSARIO' | 'HISTORICO' | 'ARTE' | 'TESTIMONIO' | 'SABIAS_QUE' | 'PARA_PENSAR' = 'CITA';
   let quoteTitle = "";
   let quoteAuthor = "";
   const quoteLines: string[] = [];
 
   function flushQuote() {
     if (!inQuote) return;
-    const body = quoteLines.join(' ').trim().replace(/"/g, '\\"');
-    bodyTypst.push(`caja-pastel("${quoteType}", "${quoteTitle.replace(/"/g, '\\"')}", [${body}], autor: "${quoteAuthor.replace(/"/g, '\\"')}")`);
+    const rawBody = quoteLines.join('\n').trim();
+    const safeBody = rawBody
+      .replace(/"/g, '\\"')
+      .replace(/<(?=[0-9a-zA-Z_%])/g, '\\<');
+    const safeTitle = sanitizeTypst(quoteTitle);
+    const safeAuthor = sanitizeTypst(quoteAuthor);
+
+    if (quoteType === 'CITA') {
+      const authorArg = safeAuthor ? `"${safeAuthor}"` : 'none';
+      bodyTypst.push(`#caja-cita([${safeBody}], autor: ${authorArg})`);
+    } else if (quoteType === 'EJEMPLO') {
+      const t = safeTitle || (isVa ? 'EXEMPLE DEL DIA A DIA' : 'EJEMPLO DEL DÍA A DÍA');
+      bodyTypst.push(`#caja-ejemplo(titulo: "${t}", [${safeBody}])`);
+    } else if (quoteType === 'GLOSARIO') {
+      const term = safeTitle || (isVa ? 'Concepte clau' : 'Concepto clave');
+      bodyTypst.push(`#caja-glosario("${term}", [${safeBody}])`);
+    } else if (quoteType === 'HISTORICO') {
+      const t = safeTitle || (isVa ? 'UNA DADA HISTÒRICA' : 'UN DATO HISTÓRICO');
+      bodyTypst.push(`#caja-dato-historico(titulo: "${t}", [${safeBody}])`);
+    } else if (quoteType === 'ARTE') {
+      const t = safeTitle || (isVa ? 'ART I SÍMBOL' : 'ARTE Y SÍMBOLO');
+      bodyTypst.push(`#caja-arte-simbolo(titulo: "${t}", [${safeBody}])`);
+    } else if (quoteType === 'TESTIMONIO') {
+      const t = safeTitle || (isVa ? 'UN TESTIMONI' : 'UN TESTIMONIO');
+      const personArg = safeAuthor ? `"${safeAuthor}"` : 'none';
+      bodyTypst.push(`#caja-testimonio(titulo: "${t}", persona: ${personArg}, [${safeBody}])`);
+    } else if (quoteType === 'SABIAS_QUE') {
+      const t = safeTitle || (isVa ? 'SABIES QUE...?' : '¿SABÍAS QUE...?');
+      bodyTypst.push(`#caja-sabias-que(titulo: "${t}", [${safeBody}])`);
+    } else if (quoteType === 'PARA_PENSAR') {
+      const prefix = safeTitle ? `#strong[${safeTitle}]\n\n` : '';
+      bodyTypst.push(`#caja-para-pensar([${prefix}${safeBody}])`);
+    } else {
+      const authorArg = safeAuthor ? `"${safeAuthor}"` : 'none';
+      bodyTypst.push(`#caja-cita([${safeBody}], autor: ${authorArg})`);
+    }
+
     inQuote = false;
     quoteTitle = "";
     quoteAuthor = "";
@@ -95,35 +137,59 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
       continue;
     }
 
-    // Cajas Didácticas
+    // Cajas Didácticas (comienzan con '>')
     if (line.startsWith('>')) {
       const quoteContent = line.substring(1).trim();
 
-      // Detección de inicio de caja
-      const boxMatch = quoteContent.match(/^\s*(?:📖|💡|📚|🏛️|🎨|👤|❓|🧭)?\s*\*\*\[?(CITA BÍBLICA|MAGISTERIO|EJEMPLO|GLOSARIO|DATO HISTÓRICO|ARTE Y SÍMBOLO|TESTIMONIO|¿SABÍAS QUE\.\.\.?\?|PARA PENSAR|CITA|EXEMPLE|GLOSSARI|DADA HISTÒRICA|ART I SÍMBOL|TESTIMONI|SABIES QUE|PER A PENSAR)\]?:?\*\*:?\s*(.*)/i);
-      
-      if (boxMatch) {
-        flushQuote();
-        inQuote = true;
-        const tag = boxMatch[1].toUpperCase();
-        quoteTitle = boxMatch[2].trim() || (isVa ? "Destacat" : "Destacado");
+      // Detección robusta de cabecera de caja:
+      // Opcional emoji/símbolos, luego **[TAG]** o **TAG:** y opcional título
+      const boxStartMatch = quoteContent.match(/^(?:[^\w*\[]*\s*)?\*\*\[?([^*\]]+)\]?\*\*:?\s*(.*)$/);
 
-        if (tag.includes('CITA') || tag.includes('MAGISTERIO')) quoteType = 'CITA';
-        else if (tag.includes('EJEMPLO') || tag.includes('EXEMPLE')) quoteType = 'EJEMPLO';
-        else if (tag.includes('GLOSARIO') || tag.includes('GLOSSARI')) quoteType = 'GLOSARIO';
-        else if (tag.includes('HISTÓRICO') || tag.includes('HISTÒRICA')) quoteType = 'HISTORICO';
-        else if (tag.includes('ARTE') || tag.includes('ART')) quoteType = 'ARTE';
-        else if (tag.includes('TESTIMONIO') || tag.includes('TESTIMONI')) quoteType = 'TESTIMONIO';
-        else if (tag.includes('SABÍAS') || tag.includes('SABIES')) quoteType = 'SABIAS_QUE';
-        else if (tag.includes('PENSAR')) quoteType = 'PARA_PENSAR';
-        else quoteType = 'EJEMPLO';
+      if (boxStartMatch) {
+        const tagUpper = boxStartMatch[1].toUpperCase();
+        let matchedType: 'CITA' | 'EJEMPLO' | 'GLOSARIO' | 'HISTORICO' | 'ARTE' | 'TESTIMONIO' | 'SABIAS_QUE' | 'PARA_PENSAR' | null = null;
 
-        continue;
+        if (tagUpper.includes('CITA') || tagUpper.includes('MAGISTERI') || tagUpper.includes('BIBLIC')) {
+          matchedType = 'CITA';
+        } else if (tagUpper.includes('EJEMPLO') || tagUpper.includes('EXEMPLE')) {
+          matchedType = 'EJEMPLO';
+        } else if (tagUpper.includes('GLOSARIO') || tagUpper.includes('GLOSSARI')) {
+          matchedType = 'GLOSARIO';
+        } else if (tagUpper.includes('HISTÓRIC') || tagUpper.includes('HISTÒRIC') || tagUpper.includes('HISTORIC')) {
+          matchedType = 'HISTORICO';
+        } else if (tagUpper.includes('ARTE') || tagUpper.includes('ART') || tagUpper.includes('SÍMBOL') || tagUpper.includes('SIMBOL')) {
+          matchedType = 'ARTE';
+        } else if (tagUpper.includes('TESTIMONI')) {
+          matchedType = 'TESTIMONIO';
+        } else if (tagUpper.includes('SABÍAS') || tagUpper.includes('SABIES') || tagUpper.includes('SABIAS')) {
+          matchedType = 'SABIAS_QUE';
+        } else if (tagUpper.includes('PENSAR')) {
+          matchedType = 'PARA_PENSAR';
+        }
+
+        if (matchedType) {
+          flushQuote();
+          inQuote = true;
+          quoteType = matchedType;
+          quoteTitle = boxStartMatch[2].trim();
+          continue;
+        }
       }
 
       if (inQuote) {
-        if (quoteContent.startsWith('—') || quoteContent.startsWith('- ')) {
-          quoteAuthor = quoteContent.replace(/^[—-]\s*/, '').trim();
+        if (quoteContent.startsWith('—') || quoteContent.startsWith('- ') || quoteContent.startsWith('-- ')) {
+          quoteAuthor = quoteContent.replace(/^[—-]+\s*/, '').trim();
+        } else {
+          quoteLines.push(quoteContent);
+        }
+        continue;
+      } else {
+        // Cita estándar si no había caja previa
+        inQuote = true;
+        quoteType = 'CITA';
+        quoteTitle = '';
+        if (quoteContent.startsWith('—') || quoteContent.startsWith('- ') || quoteContent.startsWith('-- ')) {
+          quoteAuthor = quoteContent.replace(/^[—-]+\s*/, '').trim();
         } else {
           quoteLines.push(quoteContent);
         }
@@ -144,31 +210,31 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
     // Bloque temático
     const bloqueMatch = line.match(/^# (?:BLOQUE|BLOC)\s*(\d+)[:\.]?\s*(.+)/i);
     if (bloqueMatch) {
-      bodyTypst.push(`bloque-banner("${bloqueMatch[1]}", "${bloqueMatch[2].replace(/"/g, '\\"')}")`);
+      bodyTypst.push(`\n#bloque-banner("${bloqueMatch[1]}", "${sanitizeTypst(bloqueMatch[2])}")\n`);
       continue;
     }
 
-    // Sección / Apartado
+    // Sección / Apartado numerado
     const seccionMatch = line.match(/^###?\s*(\d+(?:\.\d+)?)\.?\s*(.+)/);
     if (seccionMatch) {
-      bodyTypst.push(`seccion-header("${seccionMatch[1]}", "${seccionMatch[2].replace(/"/g, '\\"')}")`);
+      bodyTypst.push(`\n#seccion-header("${seccionMatch[1]}", "${sanitizeTypst(seccionMatch[2])}")\n`);
       continue;
     }
 
     // Encabezado nivel 3 genérico
     if (line.startsWith('###')) {
       const heading = line.replace(/^###\s*/, '').trim();
-      bodyTypst.push(`seccion-header("", "${heading.replace(/"/g, '\\"')}")`);
+      bodyTypst.push(`\n#seccion-header("", "${sanitizeTypst(heading)}")\n`);
       continue;
     }
 
     // Párrafos regulares y texto
     if (line) {
-      // Formatear negritas y cursivas en Typst
       let typstParagraph = line
         .replace(/\*\*(.+?)\*\*/g, '#strong[$1]')
         .replace(/\*(.+?)\*/g, '#emph[$1]')
-        .replace(/_(.+?)_/g, '#emph[$1]');
+        .replace(/_(.+?)_/g, '#emph[$1]')
+        .replace(/<(?=[0-9a-zA-Z_%])/g, '\\<');
       
       bodyTypst.push(`\n${typstParagraph}\n`);
     }
@@ -181,11 +247,11 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
   const subtitleFinal = mode === 'abreviado' ? `${subtitulo} • ${isVa ? "Versió abreujada de repàs" : "Versión abreviada de repaso"}` : subtitulo;
 
   const bloquesGrid = bloques.length > 0 
-    ? bloques.slice(0, 4).map(b => `box(fill: white, stroke: 0.5pt + rgb("#CAD2C5"), radius: 3pt, inset: (x: 3pt, y: 2.8pt), width: 100%)[#text(7pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[${b}]]`).join(',\n      ')
-    : `box(fill: white, stroke: 0.5pt + rgb("#CAD2C5"), radius: 3pt, inset: (x: 3pt, y: 2.8pt), width: 100%)[#text(7pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[BLOQUE 1: FUNDAMENTOS]],
-       box(fill: white, stroke: 0.5pt + rgb("#CAD2C5"), radius: 3pt, inset: (x: 3pt, y: 2.8pt), width: 100%)[#text(7pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[BLOQUE 2: DESARROLLO]],
-       box(fill: white, stroke: 0.5pt + rgb("#CAD2C5"), radius: 3pt, inset: (x: 3pt, y: 2.8pt), width: 100%)[#text(7pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[BLOQUE 3: APLICACIÓN]],
-       box(fill: white, stroke: 0.5pt + rgb("#CAD2C5"), radius: 3pt, inset: (x: 3pt, y: 2.8pt), width: 100%)[#text(7pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[BLOQUE 4: COMPROMISO]]`;
+    ? bloques.slice(0, 4).map(b => `box(fill: white, stroke: 0.5pt + rgb("#CAD2C5"), radius: 3pt, inset: (x: 3pt, y: 2.8pt), width: 100%)[#text(7pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[${sanitizeTypst(b)}]]`).join(',\n      ')
+    : `box(fill: white, stroke: 0.5pt + rgb("#CAD2C5"), radius: 3pt, inset: (x: 3pt, y: 2.8pt), width: 100%)[#text(7pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[${isVa ? "BLOC 1: FONAMENTS" : "BLOQUE 1: FUNDAMENTOS"}]],
+       box(fill: white, stroke: 0.5pt + rgb("#CAD2C5"), radius: 3pt, inset: (x: 3pt, y: 2.8pt), width: 100%)[#text(7pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[${isVa ? "BLOC 2: DESENVOLUPAMENT" : "BLOQUE 2: DESARROLLO"}]],
+       box(fill: white, stroke: 0.5pt + rgb("#CAD2C5"), radius: 3pt, inset: (x: 3pt, y: 2.8pt), width: 100%)[#text(7pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[${isVa ? "BLOC 3: APLICACIÓ" : "BLOQUE 3: APLICACIÓN"}]],
+       box(fill: white, stroke: 0.5pt + rgb("#CAD2C5"), radius: 3pt, inset: (x: 3pt, y: 2.8pt), width: 100%)[#text(7pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[${isVa ? "BLOC 4: COMPROMÍS" : "BLOQUE 4: COMPROMISO"}]]`;
 
   return `// ==============================================================================
 // APUNTES OFICIALES • RELIGIÓN CATÓLICA
@@ -193,7 +259,7 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
 // ==============================================================================
 
 #set document(
-  title: "${titulo.replace(/"/g, '\\"')}",
+  title: "${sanitizeTypst(titulo)}",
   author: "Departamento de Religión Católica"
 )
 
@@ -205,7 +271,7 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
       #grid(
         columns: (1fr, auto),
         align: (left + bottom, right + bottom),
-        text(7.8pt, fill: rgb("#52796F"), font: "Helvetica Neue", weight: "bold")[${curso} • ${titulo.toUpperCase()}],
+        text(7.8pt, fill: rgb("#52796F"), font: "Helvetica Neue", weight: "bold")[${sanitizeTypst(curso)} • ${sanitizeTypst(titulo.toUpperCase())}],
         text(7.8pt, fill: rgb("#D08C51"), font: "Helvetica Neue", weight: "bold")[${headerLabel}${headerVersion}]
       )
       #v(2pt)
@@ -243,7 +309,12 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
   spacing: 0.95em
 )
 
-// MACROS VISUALES PASTEL
+#let tamano-caja-texto = 10.2pt
+
+// ==============================================================================
+// 1. MACROS DE ESTRUCTURA Y CABECERA EDITORIAL
+// ==============================================================================
+
 #let cabecera-editorial() = [
   #block(
     width: 100%,
@@ -260,12 +331,12 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
             fill: rgb("#52796F"),
             radius: 3pt,
             inset: (x: 6pt, y: 3pt),
-            text(7.5pt, fill: white, font: "Helvetica Neue", weight: "bold")[${curso}]
+            text(7.5pt, fill: white, font: "Helvetica Neue", weight: "bold")[${sanitizeTypst(curso)}]
           )
           #v(3.5pt)
-          #text(18pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[${titulo}]
+          #text(18pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[${sanitizeTypst(titulo)}]
           #v(2.5pt)
-          #text(9.5pt, fill: rgb("#52796F"), font: "Georgia", style: "italic")[${subtitleFinal}]
+          #text(9.5pt, fill: rgb("#52796F"), font: "Georgia", style: "italic")[${sanitizeTypst(subtitleFinal)}]
         ],
         [
           #box(
@@ -275,7 +346,7 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
             inset: (x: 9pt, y: 5.5pt),
             align(center)[
               #text(7pt, fill: rgb("#52796F"), font: "Helvetica Neue", weight: "bold")[TEMA]\\
-              #text(16.5pt, fill: rgb("#D08C51"), font: "Helvetica Neue", weight: "extrabold")[${temaNum}]\\
+              #text(16.5pt, fill: rgb("#D08C51"), font: "Helvetica Neue", weight: "extrabold")[${sanitizeTypst(temaNum)}]\\
               #text(6.5pt, fill: rgb("#84A98C"), font: "Helvetica Neue")[${mode === 'abreviado' ? (isVa ? 'ABREUJAT' : 'ABREVIADO') : 'OFICIAL'}]
             ]
           )
@@ -305,9 +376,9 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
       fill: rgb("#52796F"),
       radius: 3pt,
       inset: (x: 7.5pt, y: 3.5pt),
-      text(8.2pt, fill: white, weight: "bold", font: "Helvetica Neue")[${isVa ? "BLOC" : "BLOQUE"} #num]
+      text(8.5pt, fill: white, weight: "bold", font: "Helvetica Neue")[${isVa ? "BLOC" : "BLOQUE"} #num]
     ),
-    text(10.2pt, fill: rgb("#2F3E46"), weight: "bold", font: "Helvetica Neue")[#title]
+    text(11.8pt, fill: rgb("#2F3E46"), weight: "bold", font: "Helvetica Neue")[#title]
   )
   #v(2.5pt)
   #line(length: 100%, stroke: 1pt + rgb("#84A98C"))
@@ -320,58 +391,267 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
     columns: (auto, 1fr),
     gutter: 5pt,
     align: (left + horizon, left + horizon),
-    box(
-      fill: rgb("#EDF4F2"),
-      radius: 3pt,
-      inset: (x: 5.5pt, y: 2pt),
-      stroke: 0.5pt + rgb("#CAD2C5"),
-      text(8pt, fill: rgb("#52796F"), weight: "bold", font: "Helvetica Neue")[#num]
-    ),
-    text(9.7pt, fill: rgb("#2F3E46"), weight: "bold", font: "Helvetica Neue")[#title]
+    if num != "" [
+      #box(
+        fill: rgb("#EDF4F2"),
+        radius: 3pt,
+        inset: (x: 5.5pt, y: 2pt),
+        stroke: 0.5pt + rgb("#CAD2C5"),
+        text(8.8pt, fill: rgb("#52796F"), weight: "bold", font: "Helvetica Neue")[#num]
+      )
+    ] else [],
+    text(11.4pt, fill: rgb("#2F3E46"), weight: "bold", font: "Helvetica Neue")[#title]
   )
   #v(2pt)
 ]
 
-#let caja-pastel(tipo, titulo, cuerpo, autor: "") = [
-  #v(4.5pt)
-  #let (bg, border, accent, icon, lbl) = if tipo == "CITA" {
-    (rgb("#F7F4FB"), rgb("#9B87C2"), rgb("#5E4B8B"), "📖", "${isVa ? "CITA BÍBLICA / MAGISTERI" : "CITA BÍBLICA / MAGISTERIO"}")
-  } else if tipo == "PARA_PENSAR" {
-    (rgb("#FFF6ED"), rgb("#F7C59F"), rgb("#B85D26"), "🧭", "${isVa ? "PER A PENSAR" : "PARA PENSAR"}")
-  } else if tipo == "GLOSARIO" {
-    (rgb("#F0F4F8"), rgb("#CAD2C5"), rgb("#52796F"), "📚", "${isVa ? "GLOSSARI CONCEPTUAL" : "GLOSARIO CONCEPTUAL"}")
-  } else if tipo == "HISTORICO" {
-    (rgb("#FEF9EE"), rgb("#EBD49D"), rgb("#8C6219"), "🏛️", "${isVa ? "UNA DADA HISTÒRICA" : "UN DATO HISTÓRICO"}")
-  } else if tipo == "ARTE" {
-    (rgb("#FDF2F4"), rgb("#E8B4B8"), rgb("#9C4149"), "🎨", "${isVa ? "ART I SÍMBOL" : "ARTE Y SÍMBOLO"}")
-  } else if tipo == "TESTIMONIO" {
-    (rgb("#F0F5FA"), rgb("#96BFDC"), rgb("#265B88"), "👤", "${isVa ? "UN TESTIMONI" : "UN TESTIMONIO"}")
-  } else if tipo == "SABIAS_QUE" {
-    (rgb("#F2FAF8"), rgb("#84C5B5"), rgb("#1D6B5A"), "❓", "${isVa ? "SABIES QUE...?" : "¿SABÍAS QUE...?"}")
-  } else {
-    (rgb("#F0F8F5"), rgb("#9BD1C2"), rgb("#287261"), "💡", "${isVa ? "EXEMPLE DEL DIA A DIA" : "EJEMPLO DEL DÍA A DÍA"}")
-  }
+// ==============================================================================
+// 2. CATÁLOGO DIDÁCTICO PASTEL (8 CAJAS NORMALIZADAS)
+// ==============================================================================
 
+// 1. Cita Bíblica / Magisterio (Tono Lavanda)
+#let caja-cita(cita, autor: none, exegesis: none) = [
+  #v(4.5pt)
   #block(
     width: 100%,
-    fill: bg,
-    stroke: (left: 3.5pt + accent, rest: 0.5pt + border),
-    radius: (right: 4pt),
-    inset: (x: 10pt, y: 6pt),
+    fill: rgb("#F7F4FB"),
+    stroke: (left: 3.5pt + rgb("#9B87C2"), rest: 0.6pt + rgb("#E3D9F3")),
+    radius: (right: 5pt),
+    inset: (x: 10pt, y: 6.5pt),
     breakable: false,
     [
-      #text(7.8pt, fill: accent, weight: "bold", font: "Helvetica Neue")[#icon #lbl: #titulo]\\
+      #grid(
+        columns: (auto, 1fr),
+        gutter: 6pt,
+        align: horizon,
+        text(10pt)[📖],
+        text(8.5pt, fill: rgb("#5E4B8B"), weight: "bold", font: "Helvetica Neue")[${isVa ? "CITA BÍBLICA / MAGISTERI" : "CITA BÍBLICA / MAGISTERIO"}]
+      )
       #v(2pt)
-      #text(9.5pt, font: if tipo == "CITA" { "Georgia" } else { "Georgia" }, style: if tipo == "CITA" { "italic" } else { "normal" })[#cuerpo]
-      #if autor != "" [
-        #align(right)[#text(8pt, fill: accent, weight: "bold", font: "Helvetica Neue")[— #autor]]
+      #set text(size: tamano-caja-texto, style: "italic", fill: rgb("#263238"))
+      #cita
+      #if exegesis != none [
+        #v(2pt)
+        #set text(size: tamano-caja-texto, style: "normal", fill: rgb("#263238"))
+        #exegesis
+      ]
+      #if autor != none [
+        #v(2pt)
+        #align(right)[
+          #text(9pt, style: "normal", weight: "bold", fill: rgb("#5E4B8B"))[— #autor]
+        ]
       ]
     ]
   )
   #v(3pt)
 ]
 
-// CONTENIDO PRINCIPAL
+// 2. Ejemplo del Día a Día (Tono Menta)
+#let caja-ejemplo(titulo: "${isVa ? "EXEMPLE DEL DIA A DIA" : "EJEMPLO DEL DÍA A DÍA"}", body) = [
+  #v(4.5pt)
+  #block(
+    width: 100%,
+    fill: rgb("#F0F8F5"),
+    stroke: 1pt + rgb("#9BD1C2"),
+    radius: 5pt,
+    inset: (x: 10pt, y: 6.5pt),
+    breakable: false,
+    [
+      #grid(
+        columns: (auto, 1fr),
+        gutter: 6pt,
+        align: horizon,
+        text(10pt)[💡],
+        text(8.5pt, fill: rgb("#287261"), weight: "bold", font: "Helvetica Neue")[#titulo]
+      )
+      #v(2pt)
+      #line(length: 100%, stroke: 0.5pt + rgb("#C6E7DE"))
+      #v(2pt)
+      #set text(size: tamano-caja-texto, fill: rgb("#263238"))
+      #body
+    ]
+  )
+  #v(3pt)
+]
+
+// 3. Glosario Conceptual (Tono Salvia / Celeste Suave)
+#let caja-glosario(termino, definicion) = [
+  #v(4.5pt)
+  #block(
+    width: 100%,
+    fill: rgb("#F0F4F8"),
+    stroke: 1pt + rgb("#A2B5CD"),
+    radius: 5pt,
+    inset: (x: 10pt, y: 6.5pt),
+    breakable: false,
+    [
+      #grid(
+        columns: (auto, 1fr),
+        gutter: 6pt,
+        align: horizon,
+        text(10pt)[📚],
+        text(8.5pt, fill: rgb("#2D4B73"), weight: "bold", font: "Helvetica Neue")[${isVa ? "GLOSSARI CONCEPTUAL" : "GLOSARIO CONCEPTUAL"}]
+      )
+      #v(2pt)
+      #line(length: 100%, stroke: 0.5pt + rgb("#C7D5E5"))
+      #v(2pt)
+      #text(tamano-caja-texto, fill: rgb("#2D4B73"), weight: "bold", font: "Helvetica Neue")[• #termino]\\
+      #v(1.5pt)
+      #set text(size: tamano-caja-texto, fill: rgb("#263238"))
+      #definicion
+    ]
+  )
+  #v(3pt)
+]
+
+// 4. Un Dato Histórico (Tono Vainilla)
+#let caja-dato-historico(titulo: "${isVa ? "UNA DADA HISTÒRICA" : "UN DATO HISTÓRICO"}", body) = [
+  #v(4.5pt)
+  #block(
+    width: 100%,
+    fill: rgb("#FEF9EE"),
+    stroke: 1pt + rgb("#EBD49D"),
+    radius: 5pt,
+    inset: (x: 10pt, y: 6.5pt),
+    breakable: false,
+    [
+      #grid(
+        columns: (auto, 1fr),
+        gutter: 6pt,
+        align: horizon,
+        text(10pt)[🏛️],
+        text(8.5pt, fill: rgb("#8C6219"), weight: "bold", font: "Helvetica Neue")[#titulo]
+      )
+      #v(2pt)
+      #line(length: 100%, stroke: 0.5pt + rgb("#F3E6C8"))
+      #v(2pt)
+      #set text(size: tamano-caja-texto, fill: rgb("#263238"))
+      #body
+    ]
+  )
+  #v(3pt)
+]
+
+// 5. Arte y Símbolo (Tono Rosa Empolvado)
+#let caja-arte-simbolo(titulo: "${isVa ? "ART I SÍMBOL" : "ARTE Y SÍMBOLO"}", body) = [
+  #v(4.5pt)
+  #block(
+    width: 100%,
+    fill: rgb("#FDF2F4"),
+    stroke: 1pt + rgb("#E8B4B8"),
+    radius: 5pt,
+    inset: (x: 10pt, y: 6.5pt),
+    breakable: false,
+    [
+      #grid(
+        columns: (auto, 1fr),
+        gutter: 6pt,
+        align: horizon,
+        text(10pt)[🎨],
+        text(8.5pt, fill: rgb("#9C414D"), weight: "bold", font: "Helvetica Neue")[#titulo]
+      )
+      #v(2pt)
+      #line(length: 100%, stroke: 0.5pt + rgb("#F5D5D8"))
+      #v(2pt)
+      #set text(size: tamano-caja-texto, fill: rgb("#263238"))
+      #body
+    ]
+  )
+  #v(3pt)
+]
+
+// 6. Un Testimonio (Tono Celeste)
+#let caja-testimonio(titulo: "${isVa ? "UN TESTIMONI" : "UN TESTIMONIO"}", persona: none, body) = [
+  #v(4.5pt)
+  #block(
+    width: 100%,
+    fill: rgb("#F0F5FA"),
+    stroke: 1pt + rgb("#96BFDC"),
+    radius: 5pt,
+    inset: (x: 10pt, y: 6.5pt),
+    breakable: false,
+    [
+      #grid(
+        columns: (auto, 1fr),
+        gutter: 6pt,
+        align: horizon,
+        text(10pt)[👤],
+        text(8.5pt, fill: rgb("#265B88"), weight: "bold", font: "Helvetica Neue")[#titulo]
+      )
+      #if persona != none [
+        #v(1.5pt)
+        #text(tamano-caja-texto, fill: rgb("#1F4462"), weight: "bold", font: "Helvetica Neue")[#persona]
+      ]
+      #v(2pt)
+      #line(length: 100%, stroke: 0.5pt + rgb("#C7DDEF"))
+      #v(2pt)
+      #set text(size: tamano-caja-texto, fill: rgb("#263238"))
+      #body
+    ]
+  )
+  #v(3pt)
+]
+
+// 7. ¿Sabías que...? (Tono Turquesa)
+#let caja-sabias-que(titulo: "${isVa ? "SABIES QUE...?" : "¿SABÍAS QUE...?"}", body) = [
+  #v(4.5pt)
+  #block(
+    width: 100%,
+    fill: rgb("#F2FAF8"),
+    stroke: 1pt + rgb("#84C5B5"),
+    radius: 5pt,
+    inset: (x: 10pt, y: 6.5pt),
+    breakable: false,
+    [
+      #grid(
+        columns: (auto, 1fr),
+        gutter: 6pt,
+        align: horizon,
+        text(10pt)[❓],
+        text(8.5pt, fill: rgb("#1D6B5A"), weight: "bold", font: "Helvetica Neue")[#titulo]
+      )
+      #v(2pt)
+      #line(length: 100%, stroke: 0.5pt + rgb("#C2E7DE"))
+      #v(2pt)
+      #set text(size: tamano-caja-texto, fill: rgb("#263238"))
+      #body
+    ]
+  )
+  #v(3pt)
+]
+
+// 8. Para Pensar (Tono Melocotón)
+#let caja-para-pensar(body) = [
+  #v(4.5pt)
+  #block(
+    width: 100%,
+    fill: rgb("#FFF6ED"),
+    stroke: 1pt + rgb("#F7C59F"),
+    radius: 5pt,
+    inset: (x: 10pt, y: 6.5pt),
+    breakable: false,
+    [
+      #grid(
+        columns: (auto, 1fr),
+        gutter: 6pt,
+        align: horizon,
+        text(10pt)[🧭],
+        text(8.5pt, fill: rgb("#B85D26"), weight: "bold", font: "Helvetica Neue")[${isVa ? "PER A PENSAR • DIÀLEG I REFLEXIÓ" : "PARA PENSAR • DIÁLOGO Y REFLEXIÓN"}]
+      )
+      #v(2pt)
+      #line(length: 100%, stroke: 0.5pt + rgb("#FCDCC7"))
+      #v(2pt)
+      #set text(size: tamano-caja-texto, fill: rgb("#263238"))
+      #body
+    ]
+  )
+  #v(3pt)
+]
+
+// ==============================================================================
+// 3. CONTENIDO DEL DOCUMENTO
+// ==============================================================================
+
 #cabecera-editorial()
 
 ${bodyTypst.join('\n')}

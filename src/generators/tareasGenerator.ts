@@ -44,6 +44,11 @@ export function parseTareasMarkdown(markdown: string) {
     // Nueva actividad
     const actMatch = line.match(/^##\s*(?:ACTIVIDAD|ACTIVITAT|SESIÓN|SESSIÓ)\s*(\d+)[:\.-]?\s*(.*)/i);
     if (actMatch) {
+      if (currentAct && inFuente && fuenteLines.length > 0) {
+        currentAct.fuenteTexto = fuenteLines.join(' ');
+        inFuente = false;
+        fuenteLines = [];
+      }
       currentAct = {
         num: parseInt(actMatch[1], 10),
         titulo: actMatch[2].trim() || `Actividad ${actMatch[1]}`,
@@ -118,41 +123,46 @@ export function parseTareasMarkdown(markdown: string) {
   return { curso, asignatura, tituloTema, actividades };
 }
 
+function sanitizeForTypst(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/"/g, '\\"')
+    .replace(/<(?=[0-9a-zA-Z_%])/g, '\\<');
+}
+
 export function generateTareasTypst(markdown: string, lang: Language): string {
   const isVa = lang === 'va';
   const data = parseTareasMarkdown(markdown);
 
-  const headerLeft = `${data.asignatura.toUpperCase()} • ${data.curso.toUpperCase()} • ${isVa ? "TASQUES" : "TAREAS"}`;
-  const headerRight = data.tituloTema.toUpperCase();
+  const headerLeft = `${sanitizeForTypst(data.asignatura).toUpperCase()} • ${sanitizeForTypst(data.curso).toUpperCase()} • ${isVa ? "TASQUES" : "TAREAS"}`;
+  const headerRight = sanitizeForTypst(data.tituloTema).toUpperCase();
   const deptText = isVa ? "Departament de Religió Catòlica" : "Departamento de Religión Católica";
 
   const actividadesPagesTypst = data.actividades.map((act) => {
     const preguntasTypst = act.preguntas.map(q => `
-      #seccion-pregunta("${q.num}", [${q.texto.replace(/"/g, '\\')}])
-      #v(3pt)
-      #pauta-lineas(${q.lineas || 4})
-    `).join('\n');
+  #seccion-pregunta("${q.num}", [${sanitizeForTypst(q.texto)}])
+  #v(2.5pt)
+  #pauta-lineas(${q.lineas || 4})
+`).join('\n');
 
     const fuenteBlock = act.fuenteTexto ? `
-      #caja-instrucciones(
-        titulo: "${act.fuenteTitulo || (isVa ? "DOCUMENT HISTÒRIC" : "DOCUMENTO HISTÓRICO")}",
-        cuerpo: [${act.fuenteTexto.replace(/"/g, '\\')}]
-      )
-      #v(6pt)
-    ` : '';
+  #caja-instrucciones(
+    titulo: "${sanitizeForTypst(act.fuenteTitulo || (isVa ? "DOCUMENT HISTÒRIC" : "DOCUMENTO HISTÓRICO"))}",
+    cuerpo: [${sanitizeForTypst(act.fuenteTexto)}]
+  )
+  #v(5pt)
+` : '';
 
     const instrBlock = act.instrucciones ? `
-      #text(size: 9.8pt, fill: rgb("#475569"), style: "italic")[${act.instrucciones.replace(/"/g, '\\')}]
-      #v(4pt)
-    ` : '';
+  #text(size: 9.8pt, fill: rgb("#475569"), style: "italic")[${sanitizeForTypst(act.instrucciones)}]
+  #v(3pt)
+` : '';
 
     return `
 // PÁGINA ACTIVIDAD ${act.num}
 #franja-alumno()
-#banner-actividad("${act.num}", "${act.titulo.replace(/"/g, '\\')}", sesion: "${act.sesion}", tipo: "${act.tipo}")
-${instrBlock}
-${fuenteBlock}
-${preguntasTypst}
+#banner-actividad("${act.num}", "${sanitizeForTypst(act.titulo)}", sesion: "${sanitizeForTypst(act.sesion)}", tipo: "${sanitizeForTypst(act.tipo)}")
+${instrBlock}${fuenteBlock}${preguntasTypst}
 #pagebreak()
 `;
   }).join('\n');
@@ -163,7 +173,7 @@ ${preguntasTypst}
 // ==============================================================================
 
 #set document(
-  title: "Tareas - ${data.tituloTema.replace(/"/g, '\\')}",
+  title: "Tareas - ${sanitizeForTypst(data.tituloTema)}",
   author: "${deptText}"
 )
 
@@ -269,7 +279,7 @@ ${preguntasTypst}
 ]
 
 #let seccion-pregunta(num, enunciado) = block(breakable: false, spacing: 8pt)[
-  #v(5pt)
+  #v(4pt)
   #grid(
     columns: (auto, 1fr),
     gutter: 6pt,
@@ -330,7 +340,7 @@ ${actividadesPagesTypst}
     [*${isVa ? "Nivell 4 (4 ptos)" : "Nivel 4 (4 ptos)"}*]
   ),
   [#text(size: 9.5pt, weight: "bold")[${isVa ? "1. Realització i lliurament" : "1. Realización y entrega"}]],
-  [#text(size: 8.8pt)[${isVa ? "Incomplet (<50%) o fora de termini." : "Incompleto (<50%) o fuera de plazo."}]],
+  [#text(size: 8.8pt)[${isVa ? "Incomplet (menys del 50%) o fora de termini." : "Incompleto (menos del 50%) o fuera de plazo."}]],
   [#text(size: 8.8pt)[${isVa ? "Completat al 60-70% amb omissions." : "Completado al 60-70% con omisiones."}]],
   [#text(size: 8.8pt)[${isVa ? "Quasi complet (80-90%) a temps." : "Casi completo (80-90%) a tiempo."}]],
   [#text(size: 8.8pt)[${isVa ? "100% complet, rigorós i puntual." : "100% completo, riguroso y puntual."}]],
