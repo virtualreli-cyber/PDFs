@@ -396,7 +396,7 @@ function generateExamenCompletoTypst(
     return `#block(breakable: false, spacing: 14pt)[
   #grid(
     columns: (1fr, auto),
-    [#text(size: ${apartados}pt, fill: rgb("#1E3A8A"), weight: "bold")[${d.num}.] #text(size: ${apartados}pt, weight: "bold", fill: rgb("#0F172A"))[${sanitizeTypst(d.enunciado)}]],
+    [#text(size: ${apartados}pt, fill: rgb("#000000"), weight: "bold")[${d.num}.] #text(size: ${apartados}pt, weight: "bold", fill: rgb("#000000"))[${sanitizeTypst(d.enunciado)}]],
     [#text(size: ${(apartados * 0.88).toFixed(1)}pt, weight: "bold", fill: rgb("#2563EB"))[[${sanitizeTypst(d.puntos)}]]]
   )${citaBlock}${pautasBlock}
   #lineas-pautadas(${d.lineas || 6})
@@ -623,7 +623,7 @@ ${rightCode}
 ]
 
 #let pregunta-test(num, enunciado, a, b, c, d, spacing_bottom: 11.5pt) = block(breakable: false, spacing: spacing_bottom)[
-  #text(size: ${apartados}pt, fill: rgb("#1E3A8A"), weight: "bold")[#num.] #text(size: ${apartados}pt, weight: "bold", fill: rgb("#0F172A"))[#enunciado]
+  #text(size: ${apartados}pt, fill: rgb("#000000"), weight: "bold")[#num.] #text(size: ${apartados}pt, weight: "bold", fill: rgb("#000000"))[#enunciado]
   #v(3.5pt)
   #opcion("a", a)
   #opcion("b", b)
