@@ -87,11 +87,20 @@ export function parseExamenMarkdown(markdown: string) {
       currentTest = null;
       currentDes = null;
       const bannerText = line.replace(/^#+\s*/, '').trim();
-      let desc = '';
-      if (i + 1 < lines.length && lines[i + 1].trim() && !lines[i + 1].trim().startsWith('#') && !lines[i + 1].trim().match(/^\d+[\.\)]/)) {
-        desc = lines[i + 1].trim();
+      let descLines: string[] = [];
+      while (
+        i + 1 < lines.length &&
+        lines[i + 1].trim() &&
+        !lines[i + 1].trim().startsWith('#') &&
+        !lines[i + 1].trim().match(/^\d+[\.\)]/) &&
+        !lines[i + 1].trim().startsWith('---') &&
+        !lines[i + 1].trim().startsWith('***') &&
+        !lines[i + 1].trim().startsWith('>')
+      ) {
+        descLines.push(lines[i + 1].trim());
         i++;
       }
+      const desc = descLines.join(' ');
       elementos.push({ type: 'banner', titulo: bannerText, desc });
       continue;
     }
@@ -259,28 +268,13 @@ function generateExamenCompletoTypst(
   const titulos = fontSizes?.titulos ?? 18.0;
   const apartados = fontSizes?.apartados ?? 10.8;
   const contenido = fontSizes?.contenido ?? 10.5;
+  const instruccionesSize = fontSizes?.instrucciones ?? 9.5;
 
   const headerDept = isVa ? "DEPARTAMENT DE RELIGIÓ CATÒLICA" : "DEPARTAMENTO DE RELIGIÓN CATÓLICA";
-  const numTest = data.preguntasTest.length;
 
   // Instrucciones editables / heredadas del Markdown
-  let cleanInst = data.instrucciones.replace(/^(?:INSTRUCCIONES|INSTRUCCIONS):\s*/i, '').trim();
-  if (!cleanInst && !data.instruccionesPresente) {
-    if (tipo === 'test') {
-      const ptos = numTest > 0 ? (10 / numTest).toFixed(2).replace('.', ',') : '0,50';
-      cleanInst = isVa
-        ? `Llig atentament cada qüestió. Marca amb una creu o cercle l'opció correcta per a cada enunciat. Cada encert suma ${ptos} punts. Les respostes incorrectes no penalitzen.`
-        : `Lee atentamente cada cuestión. Marca con una cruz o círculo la opción correcta para cada enunciado. Cada acierto suma ${ptos} puntos. Las respuestas incorrectas no penalizan.`;
-    } else if (tipo === 'mixto') {
-      cleanInst = isVa
-        ? `PARTE I (Test): Respon a les qüestions d'opció múltiple (5,0 punts). PARTE II (Desenvolupament): Respon amb rigor i claredat en l'espai pautat (5,0 punts).`
-        : `PARTE I (Test): Responde a las preguntas de opción múltiple (5,0 puntos). PARTE II (Desarrollo): Responde con claridad y rigor en el espacio pautado (5,0 puntos).`;
-    } else {
-      cleanInst = isVa
-        ? `Respon de manera raonada a cadascuna de les qüestions proposades, emprant el vocabulari teològic i moral adequat i respectant l'espai d'escriptura pautat.`
-        : `Responde de manera razonada a cada una de las cuestiones propuestas, empleando el vocabulario teológico y moral adecuado y respetando el espacio de escritura pautado.`;
-    }
-  }
+  // ÚNICAMENTE se muestran si el usuario las ha incluido o no las ha borrado
+  const cleanInst = data.instrucciones.replace(/^(?:INSTRUCCIONES|INSTRUCCIONS):\s*/i, '').trim();
 
   function renderPreguntaTest(q: PreguntaTest, spacingBottom: string) {
     const a = q.opciones.find(o => o.letra === 'a')?.texto || '';
@@ -293,7 +287,7 @@ function generateExamenCompletoTypst(
   function renderPreguntaDesarrollo(d: PreguntaDesarrollo) {
     const citaBlock = d.citaTexto ? `\n  #caja-cita-examen("${sanitizeTypst(d.citaTexto)}")` : '';
     const pautasBlock = d.pautas ? `\n  #v(2.5pt)\n  #text(size: ${(contenido * 0.90).toFixed(1)}pt, style: "italic", fill: rgb("#64748B"))[${isVa ? "Pautes" : "Pautas"}: ${sanitizeTypst(d.pautas)}]` : '';
-    return `#block(breakable: false, spacing: 10pt)[
+    return `#block(breakable: false, spacing: 14pt)[
   #grid(
     columns: (1fr, auto),
     [#text(size: ${apartados}pt, fill: rgb("#1E3A8A"), weight: "bold")[${d.num}.] #text(size: ${apartados}pt, weight: "bold", fill: rgb("#0F172A"))[${sanitizeTypst(d.enunciado)}]],
@@ -302,7 +296,6 @@ function generateExamenCompletoTypst(
   #lineas-pautadas(${d.lineas || 6})
 ]`;
   }
-
 
   function renderBanner(titulo: string, desc?: string) {
     return `#block(
@@ -313,17 +306,20 @@ function generateExamenCompletoTypst(
   width: 100%,
   spacing: 8pt
 )[
-  #text(weight: "bold", size: 10.5pt, fill: rgb("#0F172A"))[${sanitizeTypst(titulo)}]
-  ${desc ? `\\ \n  #text(size: 9pt, style: "italic", fill: rgb("#64748B"))[${sanitizeTypst(desc)}]` : ''}
+  #text(weight: "bold", size: ${(instruccionesSize * 1.1).toFixed(1)}pt, fill: rgb("#0F172A"))[${sanitizeTypst(titulo)}]
+  ${desc ? `\\ \n  #text(size: ${instruccionesSize}pt, style: "italic", fill: rgb("#64748B"))[${sanitizeTypst(desc)}]` : ''}
 ]`;
   }
 
   function renderTestGrid(questions: PreguntaTest[]): string {
     if (questions.length === 0) return '';
     const qCount = questions.length;
-    let spacingBottom = '5.0pt';
-    if (qCount <= 8) spacingBottom = '6.5pt';
-    else if (qCount >= 10) spacingBottom = '4.6pt';
+    // Espaciado dinámico ampliado para que las preguntas no queden apelmazadas
+    let spacingBottom = '11.5pt';
+    if (qCount <= 6) spacingBottom = '16.0pt';
+    else if (qCount <= 8) spacingBottom = '13.5pt';
+    else if (qCount <= 10) spacingBottom = '11.5pt';
+    else spacingBottom = '9.5pt';
 
     const mid = Math.ceil(qCount / 2);
     const left = questions.slice(0, mid);
@@ -355,8 +351,12 @@ ${rightCode}
 
     // Detectar banner inicial si aporta contenido descriptivo no redundante
     const firstBanner = data.elementos.find(el => el.type === 'banner');
-    if (firstBanner && firstBanner.type === 'banner' && !firstBanner.titulo.toUpperCase().includes('PREGUNTAS_TEST') && !firstBanner.titulo.toUpperCase().includes('PREGUNTES_TEST')) {
-      bodyTypstChunks.push(renderBanner(firstBanner.titulo, firstBanner.desc) + '\n#v(3pt)\n');
+    if (firstBanner && firstBanner.type === 'banner') {
+      const isRawIdentifier = firstBanner.titulo.toUpperCase() === 'PREGUNTAS_TEST' || firstBanner.titulo.toUpperCase() === 'PREGUNTES_TEST';
+      if (!isRawIdentifier || firstBanner.desc) {
+        const titleToShow = isRawIdentifier ? (isVa ? "PREGUNTES TIPUS TEST" : "PREGUNTAS TIPO TEST") : firstBanner.titulo;
+        bodyTypstChunks.push(renderBanner(titleToShow, firstBanner.desc) + '\n#v(4pt)\n');
+      }
     }
 
     let pageNum = 0;
@@ -377,12 +377,12 @@ ${rightCode}
     const pagePlan = parseDistribution(distSetting, data.preguntasTest.length, 10);
     let questionIdx = 0;
 
-    // Buscar banner para parte test
-    const testBanner = data.elementos.find(el => el.type === 'banner' && (el.titulo.includes('TEST') || el.titulo.includes('PARTE 1') || el.titulo.includes('PARTE I')));
+    // Banner para parte test: SÓLO si está presente en el Markdown
+    const testBanner = data.elementos.find(el => el.type === 'banner' && (el.titulo.toUpperCase().includes('TEST') || el.titulo.toUpperCase().includes('PARTE 1') || el.titulo.toUpperCase().includes('PARTE I') || el.titulo.toUpperCase().includes('PART 1') || el.titulo.toUpperCase().includes('PART I')));
     if (testBanner && testBanner.type === 'banner') {
-      bodyTypstChunks.push(renderBanner(testBanner.titulo, testBanner.desc) + '\n#v(4pt)\n');
-    } else {
-      bodyTypstChunks.push(renderBanner(isVa ? "PART I: PREGUNTES TIPUS TEST" : "PARTE I: PREGUNTAS TIPO TEST") + '\n#v(4pt)\n');
+      const isRawIdentifier = testBanner.titulo.toUpperCase() === 'PREGUNTAS_TEST' || testBanner.titulo.toUpperCase() === 'PREGUNTES_TEST';
+      const displayTitle = isRawIdentifier ? (isVa ? "PART I: PREGUNTES TIPUS TEST" : "PARTE I: PREGUNTAS TIPO TEST") : testBanner.titulo;
+      bodyTypstChunks.push(renderBanner(displayTitle, testBanner.desc) + '\n#v(5pt)\n');
     }
 
     let testPageNum = 0;
@@ -402,17 +402,17 @@ ${rightCode}
     // Salto de página para la parte de desarrollo
     bodyTypstChunks.push('\n#pagebreak()\n');
 
-    // Banner para parte de desarrollo
-    const desBanner = data.elementos.find(el => el.type === 'banner' && (el.titulo.includes('DESARROLLO') || el.titulo.includes('DESENVOLUPAMENT') || el.titulo.includes('PARTE 2') || el.titulo.includes('PARTE II')));
+    // Banner para parte de desarrollo: SÓLO si está presente en el Markdown
+    const desBanner = data.elementos.find(el => el.type === 'banner' && (el.titulo.toUpperCase().includes('DESARROLLO') || el.titulo.toUpperCase().includes('DESENVOLUPAMENT') || el.titulo.toUpperCase().includes('PARTE 2') || el.titulo.toUpperCase().includes('PARTE II') || el.titulo.toUpperCase().includes('PART 2') || el.titulo.toUpperCase().includes('PART II')));
     if (desBanner && desBanner.type === 'banner') {
-      bodyTypstChunks.push(renderBanner(desBanner.titulo, desBanner.desc) + '\n#v(6pt)\n');
-    } else {
-      bodyTypstChunks.push(renderBanner(isVa ? "PART II: PREGUNTES DE DESENVOLUPAMENT" : "PARTE II: PREGUNTAS DE DESARROLLO") + '\n#v(6pt)\n');
+      const isRawIdentifier = desBanner.titulo.toUpperCase() === 'PREGUNTAS_DESARROLLO' || desBanner.titulo.toUpperCase() === 'PREGUNTES_DESARROLLO';
+      const displayTitle = isRawIdentifier ? (isVa ? "PART II: PREGUNTES DE DESENVOLUPAMENT" : "PARTE II: PREGUNTAS DE DESARROLLO") : desBanner.titulo;
+      bodyTypstChunks.push(renderBanner(displayTitle, desBanner.desc) + '\n#v(8pt)\n');
     }
 
-    // Preguntas de desarrollo
+    // Preguntas de desarrollo con separación holgada
     for (const d of data.preguntasDesarrollo) {
-      bodyTypstChunks.push(renderPreguntaDesarrollo(d) + '\n#v(6pt)\n');
+      bodyTypstChunks.push(renderPreguntaDesarrollo(d) + '\n#v(12pt)\n');
     }
   } else {
     // Examen de desarrollo completo
@@ -422,19 +422,19 @@ ${rightCode}
         continue;
       }
       if (el.type === 'banner') {
-        bodyTypstChunks.push(`\n${renderBanner(el.titulo, el.desc)}\n#v(6pt)\n`);
+        bodyTypstChunks.push(`\n${renderBanner(el.titulo, el.desc)}\n#v(8pt)\n`);
         continue;
       }
       if (el.type === 'cita') {
-        bodyTypstChunks.push(`\n#caja-cita-examen("${sanitizeTypst(el.texto)}")\n#v(6pt)\n`);
+        bodyTypstChunks.push(`\n#caja-cita-examen("${sanitizeTypst(el.texto)}")\n#v(8pt)\n`);
         continue;
       }
       if (el.type === 'desarrollo') {
-        bodyTypstChunks.push(renderPreguntaDesarrollo(el.q) + '\n#v(8pt)\n');
+        bodyTypstChunks.push(renderPreguntaDesarrollo(el.q) + '\n#v(12pt)\n');
         continue;
       }
       if (el.type === 'test') {
-        bodyTypstChunks.push(renderPreguntaTest(el.q, '6.8pt') + '\n\n');
+        bodyTypstChunks.push(renderPreguntaTest(el.q, '11.5pt') + '\n\n');
         continue;
       }
     }
@@ -452,40 +452,37 @@ ${rightCode}
 
 #set page(
   paper: "a4",
-  margin: (top: 1.25cm, bottom: 1.8cm, left: 1.25cm, right: 1.25cm),
-  header-ascent: 0.5cm,
+  margin: (top: 1.8cm, bottom: 1.8cm, left: 1.25cm, right: 1.25cm),
+  header-ascent: 0.6cm,
   footer-descent: 0.6cm,
   header: context {
     let pageNum = counter(page).get().first()
     if pageNum > 1 [
       #grid(
         columns: (1fr, auto),
-        align: (left + horizon, right + horizon),
-        [#text(size: 8.5pt, fill: rgb("#52796F"), weight: "bold", tracking: 0.05em)[${sanitizeTypst(data.titulo).toUpperCase()}${data.subtitulo ? ` -- #text(style: "italic", weight: "regular")[${sanitizeTypst(data.subtitulo)}]` : ''}]],
-        [#text(size: 8.5pt, fill: rgb("#D08C51"), weight: "bold")[${sanitizeTypst(data.curso)}]]
+        align: (left + bottom, right + bottom),
+        text(8.8pt, fill: rgb("#52796F"), font: "Helvetica Neue", weight: "bold")[${headerDept} • ${sanitizeTypst(data.curso).toUpperCase()}],
+        text(8.8pt, fill: rgb("#D08C51"), font: "Helvetica Neue", weight: "bold")[${sanitizeTypst(data.titulo).toUpperCase()}${data.subtitulo ? ` -- ${sanitizeTypst(data.subtitulo)}` : ''}]
       )
-      #v(2.5pt)
-      #line(length: 100%, stroke: 0.8pt + rgb("#84A98C"))
+      #v(3pt)
+      #line(length: 100%, stroke: 0.6pt + rgb("#CAD2C5"))
     ]
   },
   footer: context [
-    #line(length: 100%, stroke: 0.8pt + rgb("#84A98C"))
-    #v(3pt)
+    #line(length: 100%, stroke: 0.6pt + rgb("#E0E7E3"))
+    #v(3.5pt)
     #grid(
       columns: (1fr, auto),
       align: (left + horizon, right + horizon),
-      [#text(size: 8pt, fill: rgb("#52796F"), style: "italic")[Departament de Religió Catòlica -- Prova d'Avaluació]],
-      [
-        #box(
-          fill: rgb("#EDF4F2"),
-          stroke: 0.5pt + rgb("#CAD2C5"),
-          radius: 3pt,
-          inset: (x: 6pt, y: 2.5pt),
-          baseline: 0%
-        )[
-          #text(size: 8pt, weight: "bold", fill: rgb("#2F3E46"))[#counter(page).display("1 de 1", both: true)]
-        ]
-      ]
+      text(8pt, fill: rgb("#52796F"), font: "Helvetica Neue")[${headerDept} • ${isVa ? "Prova d'Avaluació" : "Prueba de Evaluación"}],
+      box(
+        fill: rgb("#EDF4F2"),
+        stroke: 0.5pt + rgb("#CAD2C5"),
+        radius: 3pt,
+        inset: (x: 6pt, y: 2.5pt),
+        baseline: 0%,
+        text(8pt, weight: "bold", fill: rgb("#2F3E46"), font: "Helvetica Neue")[#counter(page).display("1 de 1", both: true)]
+      )
     )
   ]
 )
@@ -509,26 +506,26 @@ ${rightCode}
   align(center + horizon)[#text(size: 8pt, weight: "bold", fill: rgb("#334155"))[#letra]]
 )
 
-#let opcion(letra, texto) = block(spacing: 3.6pt)[
+#let opcion(letra, texto) = block(spacing: 4.2pt)[
   #grid(
     columns: (15.5pt, 1fr),
     gutter: 4.5pt,
     align: (top + center, top + left),
     badge(letra),
-    par(leading: 0.38em, justify: false)[#text(size: ${(contenido * 0.97).toFixed(1)}pt, fill: rgb("#374151"))[#texto]]
+    par(leading: 0.40em, justify: false)[#text(size: ${contenido}pt, fill: rgb("#374151"))[#texto]]
   )
 ]
 
-#let pregunta-test(num, enunciado, a, b, c, d, spacing_bottom: 6.8pt) = block(breakable: false, spacing: spacing_bottom)[
+#let pregunta-test(num, enunciado, a, b, c, d, spacing_bottom: 11.5pt) = block(breakable: false, spacing: spacing_bottom)[
   #text(size: ${apartados}pt, fill: rgb("#1E3A8A"), weight: "bold")[#num.] #text(size: ${apartados}pt, weight: "bold", fill: rgb("#0F172A"))[#enunciado]
-  #v(2.5pt)
+  #v(3.5pt)
   #opcion("a", a)
   #opcion("b", b)
   #opcion("c", c)
   #opcion("d", d)
 ]
 
-#let lineas-pautadas(n, espaciado: 12.5pt) = block(spacing: 5pt)[
+#let lineas-pautadas(n, espaciado: 13.5pt) = block(spacing: 5pt)[
   #for _ in range(n) [
     #v(espaciado)
     #line(length: 100%, stroke: (paint: rgb("#CBD5E1"), thickness: 0.6pt, dash: "dotted"))
@@ -547,6 +544,7 @@ ${rightCode}
 ]
 
 // CABECERA INSTITUCIONAL (PÁGINA 1)
+#v(-0.55cm)
 #grid(
   columns: (1fr,),
   align: left,
@@ -595,12 +593,11 @@ ${cleanInst ? `#rect(
   inset: (x: 8pt, y: 4.5pt),
   fill: rgb("#EFF6FF")
 )[
-  #text(size: ${(contenido * 0.95).toFixed(1)}pt, fill: rgb("#1E40AF"))[
+  #text(size: ${instruccionesSize}pt, fill: rgb("#1E40AF"))[
     #strong[${isVa ? "INSTRUCCIONS:" : "INSTRUCCIONES:"}] ${sanitizeTypst(cleanInst)}
   ]
 ]
 #v(4pt)` : ''}
-
 
 #v(4pt)
 
@@ -652,17 +649,17 @@ function generateSolucionarioTypst(
 
 #set page(
   paper: "a4",
-  margin: (top: 1.25cm, bottom: 1.8cm, left: 1.3cm, right: 1.3cm),
-  header-ascent: 0.5cm,
+  margin: (top: 1.8cm, bottom: 1.8cm, left: 1.3cm, right: 1.3cm),
+  header-ascent: 0.6cm,
   footer-descent: 0.6cm,
   header: context [
     #grid(
       columns: (1fr, auto),
       align: (left + bottom, right + bottom),
-      text(7.8pt, fill: rgb("#52796F"), font: "Helvetica Neue", weight: "bold")[${sanitizeTypst(data.curso)} • ${sanitizeTypst(data.titulo.toUpperCase())}],
-      text(7.8pt, fill: rgb("#D08C51"), font: "Helvetica Neue", weight: "bold")[${isVa ? "SOLUCIONARI OFICIAL" : "SOLUCIONARIO OFICIAL"}]
+      text(8.8pt, fill: rgb("#52796F"), font: "Helvetica Neue", weight: "bold")[${sanitizeTypst(data.curso)} • ${sanitizeTypst(data.titulo.toUpperCase())}],
+      text(8.8pt, fill: rgb("#D08C51"), font: "Helvetica Neue", weight: "bold")[${isVa ? "SOLUCIONARI OFICIAL" : "SOLUCIONARIO OFICIAL"}]
     )
-    #v(2.5pt)
+    #v(3pt)
     #line(length: 100%, stroke: 0.6pt + rgb("#CAD2C5"))
   ],
   footer: context [

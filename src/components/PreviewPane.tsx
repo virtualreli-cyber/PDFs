@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
-import type { CompilationState, Language } from '../types';
+import type { CompilationState, Language, SectionType, ExamenDocType } from '../types';
 import {
   Download,
   RefreshCw,
   AlertCircle,
   FileCheck,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
   RotateCcw,
-  ChevronLeft,
-  ChevronRight,
+  CheckCircle2,
+  X,
 } from 'lucide-react';
 
 interface PreviewPaneProps {
+  section: SectionType;
+  examenDocType?: ExamenDocType;
   compilationState: CompilationState;
   filename: string;
   isCustomFilename: boolean;
@@ -22,9 +21,12 @@ interface PreviewPaneProps {
   lang: Language;
   hasPendingChanges: boolean;
   onRecompile: () => void;
+  onDownloadSoluciones?: () => Promise<void>;
 }
 
 export const PreviewPane: React.FC<PreviewPaneProps> = ({
+  section,
+  examenDocType,
   compilationState,
   filename,
   isCustomFilename,
@@ -33,13 +35,13 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   lang,
   hasPendingChanges,
   onRecompile,
+  onDownloadSoluciones,
 }) => {
   const isVa = lang === 'va';
   const { isCompiling, pdfBlobUrl, pdfBytes, error } = compilationState;
-  const [zoom, setZoom] = useState<number>(100);
-  const [page, setPage] = useState<number>(1);
+  const [showDownloadModal, setShowDownloadModal] = useState<boolean>(false);
 
-  const handleDownload = () => {
+  const downloadCurrentPdf = () => {
     if (!pdfBlobUrl || !pdfBytes) return;
 
     let finalName = filename.trim();
@@ -55,9 +57,15 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
     document.body.removeChild(link);
   };
 
-  const handleZoomChange = (newZoom: number) => {
-    const clamped = Math.max(50, Math.min(200, newZoom));
-    setZoom(clamped);
+  const handleDownloadClick = () => {
+    if (!pdfBlobUrl || isCompiling) return;
+
+    // Si estamos en la vista de examen (y no es el solucionario ya seleccionado)
+    if (section === 'examenes' && examenDocType === 'examen') {
+      setShowDownloadModal(true);
+    } else {
+      downloadCurrentPdf();
+    }
   };
 
   return (
@@ -87,70 +95,8 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           )}
         </div>
 
-        {/* Acciones de visualización y compilación */}
+        {/* Acciones de compilación y descarga */}
         <div className="preview-actions">
-          {/* Navegación rápida de página */}
-          <div className="preview-page-group">
-            <button
-              type="button"
-              className="zoom-btn"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              title={isVa ? 'Pàgina anterior' : 'Página anterior'}
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-            <span className="page-indicator">
-              {isVa ? 'Pàg.' : 'Pág.'} {page}
-            </span>
-            <button
-              type="button"
-              className="zoom-btn"
-              onClick={() => setPage((p) => p + 1)}
-              title={isVa ? 'Pàgina següent' : 'Página siguiente'}
-            >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Controles de Zoom */}
-          <div className="preview-zoom-group">
-            <button
-              type="button"
-              className="zoom-btn"
-              onClick={() => handleZoomChange(zoom - 15)}
-              disabled={zoom <= 50}
-              title={isVa ? 'Reduir zoom' : 'Reducir zoom'}
-            >
-              <ZoomOut className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              className="zoom-level-btn"
-              onClick={() => handleZoomChange(100)}
-              title={isVa ? 'Restablir al 100%' : 'Restablecer al 100%'}
-            >
-              {zoom}%
-            </button>
-            <button
-              type="button"
-              className="zoom-btn"
-              onClick={() => handleZoomChange(zoom + 15)}
-              disabled={zoom >= 200}
-              title={isVa ? 'Augmentar zoom' : 'Aumentar zoom'}
-            >
-              <ZoomIn className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              className="zoom-btn"
-              onClick={() => handleZoomChange(100)}
-              title={isVa ? 'Ajustar visualització' : 'Ajustar visualización'}
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
           {/* Botón Actualizar (Único activador de compilación) */}
           <button
             type="button"
@@ -173,7 +119,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           <button
             type="button"
             className="btn-download"
-            onClick={handleDownload}
+            onClick={handleDownloadClick}
             disabled={!pdfBlobUrl || isCompiling}
             title={isVa ? 'Descarregar PDF' : 'Descargar PDF'}
           >
@@ -204,23 +150,11 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
 
         {pdfBlobUrl ? (
           <div className="pdf-viewport">
-            <div
-              className="pdf-scale-container"
-              style={{
-                width: zoom > 100 ? `${zoom}%` : '100%',
-                height: zoom > 100 ? `${zoom}%` : '100%',
-                minHeight: '100%',
-                transform: zoom < 100 ? `scale(${zoom / 100})` : 'none',
-                transformOrigin: 'top center',
-                transition: 'transform 0.12s ease-out',
-              }}
-            >
-              <iframe
-                src={`${pdfBlobUrl}#page=${page}&zoom=${zoom}&toolbar=1&navpanes=0`}
-                className="pdf-iframe"
-                title="Vista previa del PDF"
-              />
-            </div>
+            <iframe
+              src={`${pdfBlobUrl}#toolbar=1&navpanes=0`}
+              className="pdf-iframe"
+              title="Vista previa del PDF"
+            />
           </div>
         ) : !isCompiling && !error ? (
           <div className="preview-empty-state">
@@ -228,6 +162,66 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
           </div>
         ) : null}
       </div>
+
+      {/* Modal / Popup de descarga en exámenes: ¿Descargar también soluciones? */}
+      {showDownloadModal && (
+        <div className="modal-backdrop" onClick={() => setShowDownloadModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title-group">
+                <Download className="w-5 h-5 text-emerald-700" />
+                <h3 className="modal-title">
+                  {isVa ? 'Vols descarregar també les solucions?' : '¿Descargar también las soluciones?'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setShowDownloadModal(false)}
+                title={isVa ? 'Tancar' : 'Cerrar'}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="modal-description">
+              {isVa
+                ? "Pots descarregar únicament l'examen oficial per a l'alumnat o generar i descarregar simultàniament les solucions oficials docents en un fitxer PDF independent."
+                : 'Puedes descargar únicamente el examen oficial para el alumnado o generar y descargar simultáneamente las soluciones oficiales docentes en un archivo PDF independiente.'}
+            </p>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="modal-btn-secondary"
+                onClick={() => {
+                  setShowDownloadModal(false);
+                  downloadCurrentPdf();
+                }}
+              >
+                {isVa ? "Només l'examen" : 'Solo el examen'}
+              </button>
+
+              <button
+                type="button"
+                className="modal-btn-primary"
+                onClick={async () => {
+                  setShowDownloadModal(false);
+                  downloadCurrentPdf();
+                  if (onDownloadSoluciones) {
+                    setTimeout(async () => {
+                      await onDownloadSoluciones();
+                    }, 400);
+                  }
+                }}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{isVa ? 'Examen + Solucions' : 'Examen + Soluciones'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

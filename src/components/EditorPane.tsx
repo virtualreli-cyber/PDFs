@@ -67,12 +67,14 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
     }
     if (section === 'examenes') {
       return {
-        titulos: isVa ? 'Títol' : 'Título',
+        titulos: isVa ? 'Títols' : 'Títulos',
         apartados: isVa ? 'Preguntes' : 'Preguntas',
-        contenido: isVa ? 'Opcions' : 'Opciones',
-        titulosTip: isVa ? "Mida del títol de la prova" : "Tamaño del título del examen",
+        contenido: isVa ? 'Respostes' : 'Respuestas',
+        instrucciones: isVa ? 'Instruccions' : 'Instrucciones',
+        titulosTip: isVa ? "Mida del títol del tema i prova" : "Tamaño del título del examen",
         apartadosTip: isVa ? "Mida dels enunciats de les preguntes" : "Tamaño de los enunciados de las preguntas",
-        contenidoTip: isVa ? "Mida de les opcions de test, instruccions i pautes" : "Tamaño de las opciones de test, instrucciones y pautas",
+        contenidoTip: isVa ? "Mida del text de les opcions de test i respostes" : "Tamaño del texto de las opciones de test y respuestas",
+        instruccionesTip: isVa ? "Mida de les instruccions generals i de cada part" : "Tamaño de las instrucciones generales y de cada parte",
       };
     }
     return {
@@ -354,6 +356,44 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Instrucciones (solo exámenes) */}
+          {section === 'examenes' && labels.instrucciones && (
+            <div className="font-size-control" title={labels.instruccionesTip}>
+              <span className="font-size-tag">{labels.instrucciones}:</span>
+              <div className="font-size-stepper">
+                <button
+                  type="button"
+                  className="stepper-btn"
+                  onClick={() => onFontSizeNudge('instrucciones', -0.2)}
+                  title={isVa ? 'Reduir instruccions (-0.2pt)' : 'Reducir instrucciones (-0.2pt)'}
+                >
+                  −
+                </button>
+                <input
+                  type="number"
+                  step="0.2"
+                  min="6"
+                  max="20"
+                  className="stepper-input"
+                  value={fontSizes.instrucciones ?? 9.5}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    if (!isNaN(val)) onFontSizeSet('instrucciones', val);
+                  }}
+                />
+                <span className="stepper-unit">pt</span>
+                <button
+                  type="button"
+                  className="stepper-btn"
+                  onClick={() => onFontSizeNudge('instrucciones', 0.2)}
+                  title={isVa ? 'Augmentar instruccions (+0.2pt)' : 'Aumentar instrucciones (+0.2pt)'}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Botón de restablecer */}
           <button

@@ -147,6 +147,15 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
 
           <button
             type="button"
+            className="btn-pill pastel-yellow"
+            onClick={() => onInsert(`\n## ${isVa ? "PART I: PREGUNTES TIPUS TEST (5,0 punts)" : "PARTE I: PREGUNTAS TIPO TEST (5,0 puntos)"}\n${isVa ? "Instruccions específiques d'aquesta part de la prova..." : "Instrucciones específicas de esta parte del examen..."}\n`)}
+            title={isVa ? "Afegir caixetí d'instruccions per a una part de l'examen" : "Añadir cajetín de instrucciones para una parte del examen"}
+          >
+            🏷️ {isVa ? 'Part / Instrucció' : 'Parte / Instrucción'}
+          </button>
+
+          <button
+            type="button"
             className="btn-pill pastel-teal"
             onClick={() => onInsert(`\n1. ¿${isVa ? "Enunciat de la pregunta tipus test?" : "Enunciado de la pregunta tipo test?"}\n   *a) ${isVa ? "Opció correcta (marcada amb *)" : "Opción correcta (marcada con *)"}\n   b) ${isVa ? "Opció distractora 1" : "Opción distractora 1"}\n   c) ${isVa ? "Opció distractora 2" : "Opción distractora 2"}\n   d) ${isVa ? "Opció distractora 3" : "Opción distractora 3"}\n`)}
             title={isVa ? "Afegir pregunta tipus test amb 4 opcions" : "Añadir pregunta tipo test con 4 opciones"}

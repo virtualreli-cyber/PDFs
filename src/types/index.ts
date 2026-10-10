@@ -21,5 +21,7 @@ export interface FontSizesConfig {
   titulos: number;
   apartados: number;
   contenido: number;
+  instrucciones?: number;
 }
+
 

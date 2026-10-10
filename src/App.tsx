@@ -20,7 +20,7 @@ import './App.css';
 
 const DEFAULT_FONT_SIZES: Record<SectionType, FontSizesConfig> = {
   apuntes: { titulos: 16.5, apartados: 11.4, contenido: 10.9 },
-  examenes: { titulos: 18.0, apartados: 10.8, contenido: 10.5 },
+  examenes: { titulos: 18.0, apartados: 10.8, contenido: 10.5, instrucciones: 9.5 },
   tareas: { titulos: 12.5, apartados: 10.5, contenido: 10.8 },
 };
 
@@ -243,7 +243,8 @@ export function App() {
   const handleFontSizeNudge = (key: keyof FontSizesConfig, delta: number) => {
     setFontSizesBySection((prev) => {
       const current = prev[section];
-      const newVal = Math.round((current[key] + delta) * 10) / 10;
+      const baseVal = current[key] ?? (key === 'instrucciones' ? 9.5 : 10.5);
+      const newVal = Math.round((baseVal + delta) * 10) / 10;
       const clamped = Math.max(6, Math.min(36, newVal));
       return {
         ...prev,
@@ -271,6 +272,41 @@ export function App() {
       [section]: { ...DEFAULT_FONT_SIZES[section] },
     }));
   };
+
+  const handleDownloadSoluciones = useCallback(async () => {
+    try {
+      const currentSizes = fontSizesBySection.examenes;
+      const solTypst = generateExamenTypst(
+        examenesMd,
+        examenTipo,
+        'solucionario',
+        lang,
+        examQuestionsPerPage,
+        currentSizes
+      );
+      const solPdfBytes = await compileTypstToPdf(solTypst);
+      const solBlob = new Blob([solPdfBytes as any], { type: 'application/pdf' });
+      const solBlobUrl = URL.createObjectURL(solBlob);
+
+      let solName = effectiveFilename.replace(/\.pdf$/i, '');
+      const isVa = lang === 'va';
+      if (!solName.toLowerCase().includes('solucionari')) {
+        solName += isVa ? ' - Solucionari.pdf' : ' - Solucionario.pdf';
+      } else {
+        solName += '.pdf';
+      }
+
+      const link = document.createElement('a');
+      link.href = solBlobUrl;
+      link.download = solName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(solBlobUrl), 5000);
+    } catch (err) {
+      console.error('Error generating soluciones PDF:', err);
+    }
+  }, [examenesMd, examenTipo, lang, examQuestionsPerPage, fontSizesBySection, effectiveFilename]);
 
   return (
     <div className="app-container">
@@ -312,6 +348,8 @@ export function App() {
         />
 
         <PreviewPane
+          section={section}
+          examenDocType={examenDocType}
           compilationState={compilationState}
           filename={effectiveFilename}
           isCustomFilename={customFilename !== null}
@@ -320,6 +358,7 @@ export function App() {
           lang={lang}
           hasPendingChanges={hasPendingChanges}
           onRecompile={triggerCompilation}
+          onDownloadSoluciones={handleDownloadSoluciones}
         />
       </main>
     </div>
