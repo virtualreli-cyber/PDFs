@@ -4,6 +4,8 @@ export interface PreguntaTest {
   num: number;
   enunciado: string;
   opciones: { letra: string; texto: string; correcta: boolean }[];
+  solucionLetra?: string;
+  solucionTexto?: string;
 }
 
 export interface PreguntaDesarrollo {
@@ -39,6 +41,9 @@ export function parseExamenMarkdown(markdown: string) {
   const elementos: ExamenElement[] = [];
   const preguntasTest: PreguntaTest[] = [];
   const preguntasDesarrollo: PreguntaDesarrollo[] = [];
+  const solucionarioMap = new Map<number, { letra: string; texto: string }>();
+  const solucionarioDesarrolloMap = new Map<number, string>();
+  let inSolucionarioSection = false;
 
   const lines = markdown.split('\n');
   let currentTest: PreguntaTest | null = null;
@@ -71,6 +76,49 @@ export function parseExamenMarkdown(markdown: string) {
     }
     if (line.startsWith('# PREGUNTAS_PAGINA:') || line.startsWith('# PREGUNTES_PAGINA:') || line.startsWith('# DISTRIBUCION_TEST:')) {
       preguntasPagina = line.substring(line.indexOf(':') + 1).trim();
+      continue;
+    }
+
+    // Detección de cabecera de SOLUCIONARIO al final del documento
+    const isSolucionarioHeader = /^(?:#+\s*)?(?:SOLUCIONARIO|SOLUCIONS|SOLUCIONES|CLAVE DE RESPUESTAS|CLAU DE RESPOSTES|CLAVE|CLAU|RESPUESTAS CORRECTAS|RESPOSTES CORRECTES|RESPUESTAS|RESPOSTES)\b/i.test(line);
+    if (isSolucionarioHeader) {
+      inSolucionarioSection = true;
+      currentTest = null;
+      currentDes = null;
+      // Si justo antes había un salto de página por '---', lo retiramos para no dejar página en blanco al final
+      if (elementos.length > 0 && elementos[elementos.length - 1].type === 'pagebreak') {
+        elementos.pop();
+      }
+      continue;
+    }
+
+    // Si estamos dentro del bloque SOLUCIONARIO, procesar exclusivamente las claves de respuestas
+    if (inSolucionarioSection) {
+      if (line === '---' || line === '***') continue;
+
+      // Línea de clave tipo test: e.g. "1. a) A la razón...", "1. A", "1-B", "1: C", "1. (D)"
+      const solMatch = line.match(/^(?:[-*•]\s*)?\*?(\d+)(?:[\.\):]|\s+-\s*|\s+)\s*[\(\[\*]?([a-dA-D])[\)\]\.\:\-\*]?\s*(.*)/);
+      if (solMatch) {
+        const qNum = parseInt(solMatch[1], 10);
+        const letra = solMatch[2].toUpperCase();
+        const texto = solMatch[3]
+          .replace(/^[-:\)\.]\s*/, '')
+          .replace(/\*\*(.*?)\*\*/g, '$1')
+          .replace(/__(.*?)__/g, '$1')
+          .replace(/^\*+|\*+$/g, '')
+          .trim();
+        solucionarioMap.set(qNum, { letra, texto });
+        continue;
+      }
+
+      // Línea de pautas de desarrollo en solucionario si estuviera presente
+      const desSolMatch = line.match(/^(\d+)[\.\)]\s*(.+)/);
+      if (desSolMatch) {
+        const num = parseInt(desSolMatch[1], 10);
+        const pautas = desSolMatch[2].replace(/^\[(.*?)\]/, '$1').trim();
+        solucionarioDesarrolloMap.set(num, pautas);
+        continue;
+      }
       continue;
     }
 
@@ -140,7 +188,7 @@ export function parseExamenMarkdown(markdown: string) {
       currentDes = {
         num: parseInt(desMatch[1], 10),
         puntos: desMatch[2].trim(),
-        enunciado: desMatch[3].trim(),
+        enunciado: desMatch[3].replace(/^\*\*(.*?)\*\*$/, '$1').replace(/^__(.*?)__$/, '$1').trim(),
         pautas: "",
         lineas: 6
       };
@@ -149,12 +197,22 @@ export function parseExamenMarkdown(markdown: string) {
       continue;
     }
 
-    // Opción de test: e.g. "*a) Opción", "b) Opción", "a. Opción"
-    const optMatch = line.match(/^(\*?)\(?([a-dA-D])\)[\.\s]\s*(.+)/);
+    // Opción de test: e.g. "*a) Opción", "b) Opción", "a. Opción", "- a) Opción"
+    const optMatch = line.match(/^(?:[-*•]\s*)?(\*?)\(?([a-dA-D])[\)\.]\s*(.+)/i);
     if (optMatch && currentTest) {
-      const isCorrecta = optMatch[1] === '*' || line.includes('[CORRECTA]') || line.includes('[X]');
+      const isAsteriskMarked = optMatch[1] === '*' || line.startsWith('*') || /^\(?\*?[a-dA-D][\)\.]\s*\*/.test(line);
+      const isMarkerMarked = /\[CORRECTA\]|\[X\]|\(CORRECTA\)|\(X\)/i.test(line);
+      const isCorrecta = isAsteriskMarked || isMarkerMarked;
       const letra = optMatch[2].toLowerCase();
-      const texto = optMatch[3].replace(/\[CORRECTA\]/i, '').replace(/\[X\]/i, '').trim();
+      const texto = optMatch[3]
+        .replace(/\[CORRECTA\]/gi, '')
+        .replace(/\[X\]/gi, '')
+        .replace(/\(CORRECTA\)/gi, '')
+        .replace(/\(X\)/gi, '')
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/__(.*?)__/g, '$1')
+        .replace(/^\*+|\*+$/g, '')
+        .trim();
       currentTest.opciones.push({
         letra,
         texto,
@@ -167,14 +225,14 @@ export function parseExamenMarkdown(markdown: string) {
     const qMatch = line.match(/^(\d+)[\.\)]\s*(.+)/);
     if (qMatch) {
       const qNum = parseInt(qMatch[1], 10);
-      const qText = qMatch[2].trim();
+      const qText = qMatch[2].replace(/^\*\*(.*?)\*\*$/, '$1').replace(/^__(.*?)__$/, '$1').trim();
 
       // Mirar hacia adelante para saber si es test o desarrollo
       let looksLikeTest = false;
       for (let j = i + 1; j < Math.min(lines.length, i + 5); j++) {
         const nextLine = lines[j].trim();
         if (!nextLine) continue;
-        if (nextLine.match(/^\(?\*?[a-dA-D]\)[\.\s]/)) {
+        if (nextLine.match(/^(?:[-*•]\s*)?\(?\*?[a-dA-D][\)\.]\s*/i)) {
           looksLikeTest = true;
           break;
         }
@@ -210,14 +268,62 @@ export function parseExamenMarkdown(markdown: string) {
     }
   }
 
-  // Asegurar que cada pregunta test tenga al menos una opción correcta marcada
+  // Asociar claves del solucionario con las preguntas test y marcar la opción correcta
   for (const q of preguntasTest) {
-    if (!q.opciones.some(o => o.correcta) && q.opciones.length > 0) {
-      q.opciones[0].correcta = true;
+    if (solucionarioMap.has(q.num)) {
+      const sol = solucionarioMap.get(q.num)!;
+      q.solucionLetra = sol.letra;
+      const matchedOpt = q.opciones.find(o => o.letra.toUpperCase() === sol.letra);
+      q.solucionTexto = sol.texto || (matchedOpt ? matchedOpt.texto : '');
+
+      for (const opt of q.opciones) {
+        opt.correcta = (opt.letra.toUpperCase() === sol.letra);
+      }
+    } else {
+      const c = q.opciones.find(o => o.correcta);
+      if (c) {
+        q.solucionLetra = c.letra.toUpperCase();
+        q.solucionTexto = c.texto;
+      } else if (q.opciones.length > 0) {
+        q.opciones[0].correcta = true;
+        q.solucionLetra = q.opciones[0].letra.toUpperCase();
+        q.solucionTexto = q.opciones[0].texto;
+      }
     }
   }
 
-  return { titulo, subtitulo, curso, instrucciones, instruccionesPresente, preguntasPagina, elementos, preguntasTest, preguntasDesarrollo };
+  // Si por alguna razón preguntasTest estaba vacío pero se definieron respuestas en el solucionario
+  if (preguntasTest.length === 0 && solucionarioMap.size > 0) {
+    for (const [num, sol] of Array.from(solucionarioMap.entries()).sort((a, b) => a[0] - b[0])) {
+      preguntasTest.push({
+        num,
+        enunciado: `Pregunta ${num}`,
+        opciones: [{ letra: sol.letra.toLowerCase(), texto: sol.texto || '', correcta: true }],
+        solucionLetra: sol.letra,
+        solucionTexto: sol.texto,
+      });
+    }
+  }
+
+  // Asignar pautas a preguntas de desarrollo si venían en el solucionario
+  for (const d of preguntasDesarrollo) {
+    if (!d.pautas && solucionarioDesarrolloMap.has(d.num)) {
+      d.pautas = solucionarioDesarrolloMap.get(d.num)!;
+    }
+  }
+
+  return {
+    titulo,
+    subtitulo,
+    curso,
+    instrucciones,
+    instruccionesPresente,
+    preguntasPagina,
+    elementos,
+    preguntasTest,
+    preguntasDesarrollo,
+    solucionarioMap
+  };
 }
 
 function parseDistribution(input: string, total: number, defaultPerChunk = 10): number[] {
@@ -503,7 +609,7 @@ ${rightCode}
   radius: 6.5pt,
   stroke: 0.6pt + rgb("#94A3B8"),
   fill: rgb("#F8FAFC"),
-  align(center + horizon)[#text(size: 8pt, weight: "bold", fill: rgb("#334155"))[#letra]]
+  align(center + horizon)[#text(size: 8pt, weight: "regular", fill: rgb("#334155"))[#letra]]
 )
 
 #let opcion(letra, texto) = block(spacing: 4.2pt)[
@@ -512,7 +618,7 @@ ${rightCode}
     gutter: 4.5pt,
     align: (top + center, top + left),
     badge(letra),
-    par(leading: 0.40em, justify: false)[#text(size: ${contenido}pt, fill: rgb("#374151"))[#texto]]
+    par(leading: 0.40em, justify: false)[#text(size: ${contenido}pt, weight: "regular", fill: rgb("#374151"))[#texto]]
   )
 ]
 
@@ -621,8 +727,13 @@ function generateSolucionarioTypst(
 
   function renderItemSolucionario(q: PreguntaTest) {
     const c = q.opciones.find(o => o.correcta);
-    const letra = c ? c.letra.toUpperCase() : 'A';
-    const texto = c ? c.texto : '';
+    const letra = q.solucionLetra ? q.solucionLetra.toUpperCase() : (c ? c.letra.toUpperCase() : 'A');
+    const rawTexto = q.solucionTexto || (c ? c.texto : '');
+    const texto = rawTexto
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/__(.*?)__/g, '$1')
+      .replace(/^\*+|\*+$/g, '')
+      .trim();
     return `    #item-solucionario("${q.num}", "${letra}", "${sanitizeTypst(texto)}")`;
   }
 
@@ -659,10 +770,16 @@ ${rightCode}
     return chunks.join('\n');
   }
 
-  // Si no hay preguntas test (examen de desarrollo exclusivo), listado limpio sin cajetillas
-  const desarrolloSolTypst = data.preguntasTest.length === 0 ? data.preguntasDesarrollo.map(d => `
-  #block(spacing: 10pt)[
-    #text(weight: "bold", size: 10pt, fill: rgb("#52796F"))[Pregunta ${d.num}.] #h(4pt)
+  // Criterios de desarrollo en el solucionario
+  const desarrolloSolTypst = data.preguntasDesarrollo.length > 0 ? `
+#v(10pt)
+#line(length: 100%, stroke: 0.6pt + rgb("#CAD2C5"))
+#v(5pt)
+#text(weight: "bold", size: 10.2pt, fill: rgb("#2F3E46"))[${isVa ? "CRITERIS DE QUALIFICACIÓ • PREGUNTES DE DESENVOLUPAMENT" : "CRITERIOS DE CALIFICACIÓN • PREGUNTAS DE DESARROLLO"}]
+#v(5pt)
+` + data.preguntasDesarrollo.map(d => `
+  #block(spacing: 8pt)[
+    #text(weight: "bold", size: 10pt, fill: rgb("#52796F"))[${isVa ? "Pregunta" : "Pregunta"} ${d.num}.] #h(4pt)
     #text(weight: "bold", size: 9.8pt, fill: rgb("#0F172A"))[${sanitizeTypst(d.enunciado)}]
     ${d.puntos ? ` #text(size: 8.8pt, fill: rgb("#D08C51"), weight: "bold")[(${sanitizeTypst(d.puntos)})]` : ''}
     ${d.pautas ? `\\ \n    #v(2.5pt)\n    #text(size: 9pt, style: "italic", fill: rgb("#475569"))[${isVa ? "Criteris / pautes" : "Criterios / pautas"}: ${sanitizeTypst(d.pautas)}]` : ''}
@@ -718,20 +835,20 @@ ${rightCode}
   lang: "${isVa ? 'ca' : 'es'}"
 )
 
-#let item-solucionario(num, letra, texto) = block(spacing: 8pt)[
+#let item-solucionario(num, letra, texto) = block(spacing: 7.5pt)[
   #grid(
     columns: (18pt, 20pt, 1fr),
     gutter: 4pt,
-    align: (top + left, top + center, top + left),
+    align: (top + left, top + left, top + left),
     text(weight: "bold", size: ${(contenido * 0.95).toFixed(1)}pt, fill: rgb("#52796F"))[#num.],
     box(
       fill: rgb("#52796F"),
       radius: 3pt,
-      width: 16pt,
-      height: 15pt,
+      inset: (x: 4.5pt, y: 1.5pt),
+      baseline: 0%,
       align(center + horizon)[#text(size: ${(contenido * 0.95).toFixed(1)}pt, weight: "bold", fill: white)[#letra]]
     ),
-    par(leading: 0.42em, justify: false)[#text(size: ${(contenido * 0.90).toFixed(1)}pt, fill: rgb("#1E293B"))[#texto]]
+    par(leading: 0.40em, justify: false)[#text(size: ${(contenido * 0.92).toFixed(1)}pt, fill: rgb("#1E293B"))[#texto]]
   )
 ]
 

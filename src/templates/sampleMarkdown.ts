@@ -215,6 +215,29 @@ export const SAMPLE_EXAMEN_TEST_ES = `# TÍTULO: EXAMEN
     *b) La obra de la justicia y el fruto del amor fraterno entre los pueblos.
     c) El equilibrio militar de fuerzas entre potencias armadas.
     d) Un ideal inalcanzable reservado para el final de la historia.
+
+---
+SOLUCIONARIO
+1. b) Su creación a imagen y semejanza de Dios.
+2. d) En valorar a las personas únicamente por el provecho o rendimiento que ofrecen.
+3. a) Tratar a los seres humanos frágiles o improductivos como objetos prescindibles.
+4. c) Pertenece a cada individuo por sí mismo y nadie se la puede arrebatar.
+5. a) Un fin en sí misma, nunca como un simple medio para otros fines.
+6. d) Los recursos de la creación están destinados al sustento de toda la humanidad.
+7. b) Como un derecho legítimo y necesario, subordinado siempre al bien común.
+8. c) Toda posesión debe utilizarse responsablemente para servir al bien común.
+9. a) Porque dar cosas superfluas no repara las causas de la injusticia ni devuelve lo debido.
+10. d) Un acto moral que exige valorar las condiciones humanas y ecológicas de producción.
+11. b) La solidaridad cristiana.
+12. c) Cualquiera que se encuentre en necesidad y ante quien nos compadecemos.
+13. a) Las instancias superiores no deben absorber las funciones que las inferiores pueden realizar.
+14. b) La persona es el sujeto y artífice consciente de toda labor productiva.
+15. c) Sustentar dignamente al trabajador y a su familia con acceso a bienes esenciales.
+16. b) Rerum Novarum del papa León XIII en 1891.
+17. b) El conjunto de condiciones sociales que permiten a las personas alcanzar su plenitud.
+18. c) La creación de empleo digno, formación integral y justicia en la contratación.
+19. a) Poner en el centro de las decisiones pastorales y sociales la defensa de los vulnerables.
+20. b) La obra de la justicia y el fruto del amor fraterno entre los pueblos.
 `;
 
 export const SAMPLE_EXAMEN_MIXTO_ES = `# TÍTULO: EXAMEN MIXTO

@@ -174,6 +174,15 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
 
           <button
             type="button"
+            className="btn-pill pastel-rose"
+            onClick={() => onInsert(`\n---\n${isVa ? "SOLUCIONARI" : "SOLUCIONARIO"}\n1. a) ${isVa ? "Resposta correcta..." : "Respuesta correcta..."}\n`)}
+            title={isVa ? "Afegir bloc de solucionari oficial" : "Añadir bloque de solucionario oficial"}
+          >
+            🔑 {isVa ? 'Solucionari' : 'Solucionario'}
+          </button>
+
+          <button
+            type="button"
             className="btn-pill pastel-peach"
             onClick={() => onInsert(`\n# BLOQUE 1: ${isVa ? "Conceptes clau i definicions (3,0 punts)" : "Conceptos clave y definiciones (3,0 puntos)"}\n`)}
             title={isVa ? "Afegir bloc temàtic de desenvolupament" : "Añadir bloque temático de desarrollo"}
