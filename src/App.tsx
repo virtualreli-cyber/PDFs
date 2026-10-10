@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import type { SectionType, Language, ApuntesMode, ExamenTipo, ExamenDocType, CompilationState } from './types';
+import type { SectionType, Language, ApuntesMode, ExamenTipo, ExamenDocType, CompilationState, FontSizesConfig } from './types';
 import { Header } from './components/Header';
 import { EditorPane } from './components/EditorPane';
 import { PreviewPane } from './components/PreviewPane';
@@ -18,6 +18,12 @@ import {
 } from './templates/sampleMarkdown';
 import './App.css';
 
+const DEFAULT_FONT_SIZES: Record<SectionType, FontSizesConfig> = {
+  apuntes: { titulos: 16.5, apartados: 11.4, contenido: 10.9 },
+  examenes: { titulos: 18.0, apartados: 10.8, contenido: 10.5 },
+  tareas: { titulos: 12.5, apartados: 10.5, contenido: 10.8 },
+};
+
 export function App() {
   const [section, setSection] = useState<SectionType>('apuntes');
   const [lang, setLang] = useState<Language>('es');
@@ -34,6 +40,9 @@ export function App() {
 
   // Estados específicos de Tareas
   const [tareasMd, setTareasMd] = useState<string>(SAMPLE_TAREAS_ES);
+
+  // Configuración de tamaño de fuente por sección
+  const [fontSizesBySection, setFontSizesBySection] = useState<Record<SectionType, FontSizesConfig>>(DEFAULT_FONT_SIZES);
 
   // Nombre de archivo personalizado (si el usuario lo edita)
   const [customFilename, setCustomFilename] = useState<string | null>(null);
@@ -89,14 +98,15 @@ export function App() {
 
   // Generador de código Typst según estado actual
   const buildTypstSource = useCallback((): string => {
+    const currentSizes = fontSizesBySection[section];
     if (section === 'apuntes') {
-      return generateApuntesTypst(apuntesMd, apuntesMode, lang);
+      return generateApuntesTypst(apuntesMd, apuntesMode, lang, currentSizes);
     }
     if (section === 'examenes') {
-      return generateExamenTypst(examenesMd, examenTipo, examenDocType, lang, examQuestionsPerPage);
+      return generateExamenTypst(examenesMd, examenTipo, examenDocType, lang, examQuestionsPerPage, currentSizes);
     }
-    return generateTareasTypst(tareasMd, lang);
-  }, [section, apuntesMd, apuntesMode, examenesMd, examenTipo, examenDocType, tareasMd, lang, examQuestionsPerPage]);
+    return generateTareasTypst(tareasMd, lang, currentSizes);
+  }, [section, apuntesMd, apuntesMode, examenesMd, examenTipo, examenDocType, tareasMd, lang, examQuestionsPerPage, fontSizesBySection]);
 
   // Código Typst actual
   const currentTypstCode = buildTypstSource();
@@ -229,6 +239,39 @@ export function App() {
     }
   };
 
+  // Ajustes interactivos de tamaño de fuente
+  const handleFontSizeNudge = (key: keyof FontSizesConfig, delta: number) => {
+    setFontSizesBySection((prev) => {
+      const current = prev[section];
+      const newVal = Math.round((current[key] + delta) * 10) / 10;
+      const clamped = Math.max(6, Math.min(36, newVal));
+      return {
+        ...prev,
+        [section]: {
+          ...current,
+          [key]: clamped,
+        },
+      };
+    });
+  };
+
+  const handleFontSizeSet = (key: keyof FontSizesConfig, value: number) => {
+    setFontSizesBySection((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [key]: Math.max(6, Math.min(36, value)),
+      },
+    }));
+  };
+
+  const handleResetFontSizes = () => {
+    setFontSizesBySection((prev) => ({
+      ...prev,
+      [section]: { ...DEFAULT_FONT_SIZES[section] },
+    }));
+  };
+
   return (
     <div className="app-container">
       <Header
@@ -260,6 +303,10 @@ export function App() {
           }}
           examQuestionsPerPage={examQuestionsPerPage}
           onExamQuestionsPerPageChange={setExamQuestionsPerPage}
+          fontSizes={fontSizesBySection[section]}
+          onFontSizeNudge={handleFontSizeNudge}
+          onFontSizeSet={handleFontSizeSet}
+          onResetFontSizes={handleResetFontSizes}
           onLoadSample={handleLoadSample}
           onClear={handleClear}
         />

@@ -1,4 +1,4 @@
-import type { Language, ApuntesMode } from '../types';
+import type { Language, ApuntesMode, FontSizesConfig } from '../types';
 
 export interface ApuntesParsedData {
   curso: string;
@@ -16,7 +16,15 @@ function sanitizeTypst(text: string): string {
     .replace(/<(?=[0-9a-zA-Z_%])/g, '\\<');
 }
 
-export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: Language): string {
+export function generateApuntesTypst(
+  markdown: string,
+  mode: ApuntesMode,
+  lang: Language,
+  fontSizes?: FontSizesConfig
+): string {
+  const titulos = fontSizes?.titulos ?? 16.5;
+  const apartados = fontSizes?.apartados ?? 11.4;
+  const contenido = fontSizes?.contenido ?? 10.9;
   // Filtrar bloques según el modo
   let processedMd = markdown;
   if (mode === 'abreviado') {
@@ -298,7 +306,7 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
 
 #set text(
   font: ("Georgia", "Noto Serif CJK SC", "Noto Sans CJK SC", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji", "serif"),
-  size: 10.9pt,
+  size: ${contenido}pt,
   fill: rgb("#263238"),
   lang: "${isVa ? 'ca' : 'es'}"
 )
@@ -309,7 +317,7 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
   spacing: 0.95em
 )
 
-#let tamano-caja-texto = 10.2pt
+#let tamano-caja-texto = ${(contenido * 0.94).toFixed(1)}pt
 
 // ==============================================================================
 // ICONOS VECTORIALES INTEGRADOS (SVG NATIVO EN TYPST)
@@ -348,10 +356,10 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
           )
           #v(3.5pt)
           #block(width: 100%)[
-            #text(16.5pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[${sanitizeTypst(titulo).replace(/\\\\/g, '\\\n')}]
+            #text(${titulos}pt, fill: rgb("#2F3E46"), font: "Helvetica Neue", weight: "bold")[${sanitizeTypst(titulo).replace(/\\\\/g, '\\\n')}]
           ]
           #v(2.5pt)
-          #text(9.5pt, fill: rgb("#52796F"), font: "Georgia", style: "italic")[${sanitizeTypst(subtitleFinal)}]
+          #text(${(titulos * 0.58).toFixed(1)}pt, fill: rgb("#52796F"), font: "Georgia", style: "italic")[${sanitizeTypst(subtitleFinal)}]
         ],
         [
           #box(
@@ -393,7 +401,7 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
       inset: (x: 7.5pt, y: 3.5pt),
       text(8.5pt, fill: white, weight: "bold", font: "Helvetica Neue")[${isVa ? "BLOC" : "BLOQUE"} #num]
     ),
-    text(11.8pt, fill: rgb("#2F3E46"), weight: "bold", font: "Helvetica Neue")[#title]
+    text(${(apartados + 0.4).toFixed(1)}pt, fill: rgb("#2F3E46"), weight: "bold", font: "Helvetica Neue")[#title]
   )
   #v(2.5pt)
   #line(length: 100%, stroke: 1pt + rgb("#84A98C"))
@@ -415,7 +423,7 @@ export function generateApuntesTypst(markdown: string, mode: ApuntesMode, lang: 
         text(8.8pt, fill: rgb("#52796F"), weight: "bold", font: "Helvetica Neue")[#num]
       )
     ] else [],
-    text(11.4pt, fill: rgb("#2F3E46"), weight: "bold", font: "Helvetica Neue")[#title]
+    text(${apartados}pt, fill: rgb("#2F3E46"), weight: "bold", font: "Helvetica Neue")[#title]
   )
   #v(2pt)
 ]

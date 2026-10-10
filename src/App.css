@@ -210,7 +210,7 @@ body {
    ========================================================================== */
 .app-main-split {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 40% 60%;
   height: calc(100vh - 48px);
   overflow: hidden;
 }
@@ -457,6 +457,146 @@ body {
   background-color: #FFF6ED;
   border-color: #F7C59F;
   color: #B85D26;
+}
+
+/* ==========================================================================
+   FONT SIZES TOOLBAR
+   ========================================================================== */
+.font-sizes-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 12px;
+  background-color: #FAFBFD;
+  border-bottom: 1px solid var(--color-border);
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.font-sizes-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.font-sizes-title {
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  color: var(--color-text-muted);
+}
+
+.font-sizes-groups {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.font-size-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 2px 5px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.font-size-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.font-size-stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.stepper-btn {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #CBD5E1;
+  background: #F1F5F9;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #334155;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  transition: all 0.1s ease;
+}
+
+.stepper-btn:hover {
+  background: #E2E8F0;
+  border-color: #94A3B8;
+  color: #0F172A;
+}
+
+.stepper-input {
+  width: 38px;
+  padding: 1px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: #1E293B;
+  -moz-appearance: textfield;
+}
+
+.stepper-input::-webkit-outer-spin-button,
+.stepper-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.stepper-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: white;
+}
+
+.stepper-unit {
+  font-size: 9.5px;
+  color: #94A3B8;
+  font-weight: 500;
+  margin-right: 2px;
+}
+
+.font-size-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  white-space: nowrap;
+}
+
+.font-size-reset-btn:hover {
+  background: #F1F5F9;
+  color: var(--color-text-main);
+  border-color: #94A3B8;
 }
 
 .editor-textarea-wrapper {

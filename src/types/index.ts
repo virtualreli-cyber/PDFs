@@ -16,3 +16,10 @@ export interface CompilationState {
   pageCount: number;
   lastCompiledAt: Date | null;
 }
+
+export interface FontSizesConfig {
+  titulos: number;
+  apartados: number;
+  contenido: number;
+}
+

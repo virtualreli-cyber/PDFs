@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
-import type { SectionType, Language, ApuntesMode, ExamenTipo, ExamenDocType } from '../types';
+import type { SectionType, Language, ApuntesMode, ExamenTipo, ExamenDocType, FontSizesConfig } from '../types';
 import { QuickInsertBar } from './QuickInsertBar';
-import { RotateCcw, Trash2, Scissors, CheckCircle2 } from 'lucide-react';
+import { RotateCcw, Trash2, Scissors, CheckCircle2, Type } from 'lucide-react';
 
 interface EditorPaneProps {
   section: SectionType;
@@ -19,6 +19,11 @@ interface EditorPaneProps {
   onExamenDocTypeChange: (docType: ExamenDocType) => void;
   examQuestionsPerPage: string;
   onExamQuestionsPerPageChange: (val: string) => void;
+  // Ajustes tipográficos
+  fontSizes: FontSizesConfig;
+  onFontSizeNudge: (key: keyof FontSizesConfig, delta: number) => void;
+  onFontSizeSet: (key: keyof FontSizesConfig, val: number) => void;
+  onResetFontSizes: () => void;
   // Acciones generales
   onLoadSample: () => void;
   onClear: () => void;
@@ -38,11 +43,49 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
   onExamenDocTypeChange,
   examQuestionsPerPage,
   onExamQuestionsPerPageChange,
+  fontSizes,
+  onFontSizeNudge,
+  onFontSizeSet,
+  onResetFontSizes,
   onLoadSample,
   onClear,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isVa = lang === 'va';
+
+  // Etiquetas contextuales según la vista activa
+  const getLabels = () => {
+    if (section === 'apuntes') {
+      return {
+        titulos: isVa ? 'Títols' : 'Títulos',
+        apartados: isVa ? 'Apartats' : 'Apartados',
+        contenido: isVa ? 'Text' : 'Texto',
+        titulosTip: isVa ? "Mida del títol principal i subtítol del tema" : "Tamaño del título principal y subtítulo del tema",
+        apartadosTip: isVa ? "Mida dels apartats H1 i H2" : "Tamaño de los apartados H1 y H2",
+        contenidoTip: isVa ? "Mida del cos de text, paràgrafs i caixes" : "Tamaño del cuerpo de texto, párrafos y cajas",
+      };
+    }
+    if (section === 'examenes') {
+      return {
+        titulos: isVa ? 'Títol' : 'Título',
+        apartados: isVa ? 'Preguntes' : 'Preguntas',
+        contenido: isVa ? 'Opcions' : 'Opciones',
+        titulosTip: isVa ? "Mida del títol de la prova" : "Tamaño del título del examen",
+        apartadosTip: isVa ? "Mida dels enunciats de les preguntes" : "Tamaño de los enunciados de las preguntas",
+        contenidoTip: isVa ? "Mida de les opcions de test, instruccions i pautes" : "Tamaño de las opciones de test, instrucciones y pautas",
+      };
+    }
+    return {
+      titulos: isVa ? 'Activitat' : 'Actividad',
+      apartados: isVa ? 'Preguntes' : 'Preguntas',
+      contenido: isVa ? 'Fonts/Text' : 'Fuentes/Texto',
+      titulosTip: isVa ? "Mida de la capçalera de l'activitat" : "Tamaño de la cabecera de la actividad",
+      apartadosTip: isVa ? "Mida dels enunciats dels exercicis" : "Tamaño de los enunciados de los ejercicios",
+      contenidoTip: isVa ? "Mida dels textos de lectura i fonts" : "Tamaño de los textos de lectura y fuentes",
+    };
+  };
+
+  const labels = getLabels();
 
   const handleInsert = (snippet: string) => {
     const textarea = textareaRef.current;
@@ -195,6 +238,135 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
 
       {/* Barra de inserción rápida */}
       <QuickInsertBar section={section} lang={lang} onInsert={handleInsert} />
+
+      {/* Barra de ajuste tipográfico dinámico */}
+      <div className="font-sizes-toolbar">
+        <div className="font-sizes-header">
+          <Type className="w-3.5 h-3.5" />
+          <span className="font-sizes-title">{isVa ? 'Mida de text:' : 'Tamaño texto:'}</span>
+        </div>
+
+        <div className="font-sizes-groups">
+          {/* Títulos */}
+          <div className="font-size-control" title={labels.titulosTip}>
+            <span className="font-size-tag">{labels.titulos}:</span>
+            <div className="font-size-stepper">
+              <button
+                type="button"
+                className="stepper-btn"
+                onClick={() => onFontSizeNudge('titulos', -0.5)}
+                title={isVa ? 'Reduir títols (-0.5pt)' : 'Reducir títulos (-0.5pt)'}
+              >
+                −
+              </button>
+              <input
+                type="number"
+                step="0.5"
+                min="8"
+                max="36"
+                className="stepper-input"
+                value={fontSizes.titulos}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  if (!isNaN(val)) onFontSizeSet('titulos', val);
+                }}
+              />
+              <span className="stepper-unit">pt</span>
+              <button
+                type="button"
+                className="stepper-btn"
+                onClick={() => onFontSizeNudge('titulos', 0.5)}
+                title={isVa ? 'Augmentar títols (+0.5pt)' : 'Aumentar títulos (+0.5pt)'}
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Apartados */}
+          <div className="font-size-control" title={labels.apartadosTip}>
+            <span className="font-size-tag">{labels.apartados}:</span>
+            <div className="font-size-stepper">
+              <button
+                type="button"
+                className="stepper-btn"
+                onClick={() => onFontSizeNudge('apartados', -0.2)}
+                title={isVa ? 'Reduir apartats (-0.2pt)' : 'Reducir apartados (-0.2pt)'}
+              >
+                −
+              </button>
+              <input
+                type="number"
+                step="0.2"
+                min="7"
+                max="28"
+                className="stepper-input"
+                value={fontSizes.apartados}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  if (!isNaN(val)) onFontSizeSet('apartados', val);
+                }}
+              />
+              <span className="stepper-unit">pt</span>
+              <button
+                type="button"
+                className="stepper-btn"
+                onClick={() => onFontSizeNudge('apartados', 0.2)}
+                title={isVa ? 'Augmentar apartats (+0.2pt)' : 'Aumentar apartados (+0.2pt)'}
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Contenido */}
+          <div className="font-size-control" title={labels.contenidoTip}>
+            <span className="font-size-tag">{labels.contenido}:</span>
+            <div className="font-size-stepper">
+              <button
+                type="button"
+                className="stepper-btn"
+                onClick={() => onFontSizeNudge('contenido', -0.2)}
+                title={isVa ? 'Reduir contingut (-0.2pt)' : 'Reducir contenido (-0.2pt)'}
+              >
+                −
+              </button>
+              <input
+                type="number"
+                step="0.2"
+                min="7"
+                max="24"
+                className="stepper-input"
+                value={fontSizes.contenido}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  if (!isNaN(val)) onFontSizeSet('contenido', val);
+                }}
+              />
+              <span className="stepper-unit">pt</span>
+              <button
+                type="button"
+                className="stepper-btn"
+                onClick={() => onFontSizeNudge('contenido', 0.2)}
+                title={isVa ? 'Augmentar contingut (+0.2pt)' : 'Aumentar contenido (+0.2pt)'}
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Botón de restablecer */}
+          <button
+            type="button"
+            className="font-size-reset-btn"
+            onClick={onResetFontSizes}
+            title={isVa ? 'Restablir mides per defecte de la secció activa' : 'Restablecer tamaños por defecto de la sección activa'}
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>{isVa ? 'Restablir' : 'Restablecer'}</span>
+          </button>
+        </div>
+      </div>
 
       {/* Área del editor */}
       <div className="editor-textarea-wrapper">

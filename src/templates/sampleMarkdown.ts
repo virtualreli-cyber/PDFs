@@ -93,6 +93,7 @@ export const SAMPLE_EXAMEN_TEST_ES = `# TÍTULO: EXAMEN
 # SUBTÍTULO: Tema 03: Justicia Social y Dignidad Humana
 # CURSO: 2º ESO
 # TIPO: test
+# INSTRUCCIONES: Lee atentamente cada cuestión. Marca con una cruz o círculo la opción correcta para cada enunciado. Cada acierto suma 0,50 puntos. Las respuestas incorrectas no penalizan.
 
 ## PREGUNTAS_TEST
 1. ¿Cuál es el fundamento primero de la dignidad humana según la fe cristiana?
@@ -220,6 +221,7 @@ export const SAMPLE_EXAMEN_MIXTO_ES = `# TÍTULO: EXAMEN MIXTO
 # SUBTÍTULO: Tema 03: Justicia Social y Dignidad Humana
 # CURSO: 2º ESO
 # TIPO: mixto
+# INSTRUCCIONES: PARTE I (Test): Responde a las preguntas de opción múltiple (5,0 puntos). PARTE II (Desarrollo): Responde con claridad y rigor en el espacio pautado (5,0 puntos).
 
 ## PREGUNTAS_TEST
 1. ¿Cuál es el fundamento primero de la dignidad humana según la fe cristiana?
@@ -302,6 +304,7 @@ export const SAMPLE_EXAMEN_DESARROLLO_ES = `# TÍTULO: EXAMEN DE DESARROLLO
 # SUBTÍTULO: Tema 03: Justicia Social y Dignidad Humana
 # CURSO: 2º ESO
 # TIPO: desarrollo
+# INSTRUCCIONES: Responde de manera razonada a cada una de las cuestiones propuestas, empleando el vocabulario teológico y moral adecuado y respetando el espacio de escritura pautado.
 
 ## PREGUNTAS_DESARROLLO
 1. [3,0 ptos] CONCEPTOS CLAVE: La dignidad humana frente a la cultura del descarte y el utilitarismo moral.

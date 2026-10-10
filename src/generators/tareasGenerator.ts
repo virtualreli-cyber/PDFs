@@ -1,4 +1,4 @@
-import type { Language } from '../types';
+import type { Language, FontSizesConfig } from '../types';
 
 export interface TareaActividad {
   num: number;
@@ -130,7 +130,15 @@ function sanitizeForTypst(text: string): string {
     .replace(/<(?=[0-9a-zA-Z_%])/g, '\\<');
 }
 
-export function generateTareasTypst(markdown: string, lang: Language): string {
+export function generateTareasTypst(
+  markdown: string,
+  lang: Language,
+  fontSizes?: FontSizesConfig
+): string {
+  const titulos = fontSizes?.titulos ?? 12.5;
+  const apartados = fontSizes?.apartados ?? 10.5;
+  const contenido = fontSizes?.contenido ?? 10.8;
+
   const isVa = lang === 'va';
   const data = parseTareasMarkdown(markdown, isVa);
 
@@ -203,7 +211,7 @@ ${instrBlock}${fuenteBlock}${preguntasTypst}
 
 #set text(
   font: ("Georgia", "Noto Serif CJK SC", "Noto Sans CJK SC", "serif"),
-  size: 10.8pt,
+  size: ${contenido}pt,
   fill: rgb("#263238"),
   lang: "${isVa ? 'ca' : 'es'}"
 )
@@ -246,7 +254,7 @@ ${instrBlock}${fuenteBlock}${preguntasTypst}
       [
         #text(size: 9pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#52796F"))[${isVa ? "ACTIVITAT" : "ACTIVIDAD"} #numero] \\
         #v(1pt)
-        #text(size: 12.5pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#2F3E46"))[#titulo]
+        #text(size: ${titulos}pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#2F3E46"))[#titulo]
       ],
       [
         #align(right + top)[
@@ -286,7 +294,7 @@ ${instrBlock}${fuenteBlock}${preguntasTypst}
     box(fill: rgb("#EDF4F2"), stroke: 0.5pt + rgb("#84A98C"), radius: 3pt, inset: (x: 5pt, y: 2pt))[
       #text(size: 9pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#2F3E46"))[#num]
     ],
-    text(size: 11.2pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#1E293B"))[#enunciado]
+    text(size: ${apartados}pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#1E293B"))[#enunciado]
   )
 ]
 
@@ -300,7 +308,7 @@ ${instrBlock}${fuenteBlock}${preguntasTypst}
   )[
     #text(size: 8.5pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#475569"))[#titulo]\\
     #v(2pt)
-    #text(size: 9.8pt, font: "Georgia", style: "italic", fill: rgb("#334155"))[#cuerpo]
+    #text(size: ${(contenido * 0.91).toFixed(1)}pt, font: "Georgia", style: "italic", fill: rgb("#334155"))[#cuerpo]
   ]
 ]
 
