@@ -619,26 +619,57 @@ function generateSolucionarioTypst(
   const contenido = fontSizes?.contenido ?? 10.5;
   const headerDept = isVa ? "DEPARTAMENT DE RELIGIÓ CATÒLICA" : "DEPARTAMENTO DE RELIGIÓN CATÓLICA";
 
-  const respuestasTestTypst = data.preguntasTest.map(q => {
+  function renderItemSolucionario(q: PreguntaTest) {
     const c = q.opciones.find(o => o.correcta);
     const letra = c ? c.letra.toUpperCase() : 'A';
     const texto = c ? c.texto : '';
-    return `  #item-solucionario("${q.num}", "${letra}", "${sanitizeTypst(texto)}")`;
-  }).join('\n');
+    return `    #item-solucionario("${q.num}", "${letra}", "${sanitizeTypst(texto)}")`;
+  }
 
-  const desarrolloSolTypst = data.preguntasDesarrollo.map(d => `
-  #block(stroke: 0.5pt + rgb("#CAD2C5"), fill: rgb("#EDF4F2"), inset: 7pt, radius: 4pt, width: 100%)[
-    #grid(
-      columns: (1fr, auto),
-      [#text(weight: "bold", size: 10pt, fill: rgb("#52796F"))[Pregunta ${d.num}] #text(size: 9pt, fill: rgb("#2F3E46"))[(${sanitizeTypst(d.puntos)})]],
-      [#text(size: 8pt, fill: rgb("#D08C51"), weight: "bold")[${isVa ? "CRITERI DE CORRECCIÓ" : "CRITERIO DE CORRECCIÓN"}]]
-    )
-    #v(3pt)
-    #text(size: 9.2pt, weight: "bold", fill: rgb("#2F3E46"))[${sanitizeTypst(d.enunciado)}]
-    ${d.pautas ? `\n    #v(2.5pt)\n    #text(size: 8.8pt, fill: rgb("#52796F"), style: "italic")[${isVa ? "Termes i conceptes exigibles" : "Términos y conceptos exigibles"}: ${sanitizeTypst(d.pautas)}]` : ''}
+  function renderSolucionarioGrid(questions: PreguntaTest[]): string {
+    if (questions.length === 0) return '';
+    const perPage = 22;
+    const chunks: string[] = [];
+
+    for (let start = 0; start < questions.length; start += perPage) {
+      if (start > 0) {
+        chunks.push('\n#pagebreak()\n');
+      }
+      const pageQs = questions.slice(start, start + perPage);
+      const mid = Math.ceil(pageQs.length / 2);
+      const left = pageQs.slice(0, mid);
+      const right = pageQs.slice(mid);
+
+      const leftCode = left.map(q => renderItemSolucionario(q)).join('\n');
+      const rightCode = right.map(q => renderItemSolucionario(q)).join('\n');
+
+      chunks.push(`#grid(
+  columns: (1fr, 1fr),
+  gutter: 18pt,
+  align: top + left,
+  [
+${leftCode}
+  ],
+  [
+${rightCode}
   ]
-  #v(4pt)
-`).join('\n');
+)`);
+    }
+
+    return chunks.join('\n');
+  }
+
+  // Si no hay preguntas test (examen de desarrollo exclusivo), listado limpio sin cajetillas
+  const desarrolloSolTypst = data.preguntasTest.length === 0 ? data.preguntasDesarrollo.map(d => `
+  #block(spacing: 10pt)[
+    #text(weight: "bold", size: 10pt, fill: rgb("#52796F"))[Pregunta ${d.num}.] #h(4pt)
+    #text(weight: "bold", size: 9.8pt, fill: rgb("#0F172A"))[${sanitizeTypst(d.enunciado)}]
+    ${d.puntos ? ` #text(size: 8.8pt, fill: rgb("#D08C51"), weight: "bold")[(${sanitizeTypst(d.puntos)})]` : ''}
+    ${d.pautas ? `\\ \n    #v(2.5pt)\n    #text(size: 9pt, style: "italic", fill: rgb("#475569"))[${isVa ? "Criteris / pautes" : "Criterios / pautas"}: ${sanitizeTypst(d.pautas)}]` : ''}
+  ]
+`).join('\n') : '';
+
+  const testGridTypst = renderSolucionarioGrid(data.preguntasTest);
 
   return `// =============================================================================
 // SOLUCIONARIO OFICIAL • RELIGIÓ CATÒLICA
@@ -681,20 +712,26 @@ function generateSolucionarioTypst(
 )
 
 #set text(
-  font: ("Georgia", "Noto Serif CJK SC", "Noto Sans CJK SC", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji", "serif"),
+  font: ("Helvetica Neue", "Arial", "Noto Sans CJK SC", "Noto Serif CJK SC", "sans-serif"),
   size: ${contenido}pt,
   fill: rgb("#263238"),
   lang: "${isVa ? 'ca' : 'es'}"
 )
 
-#let item-solucionario(num, letra, texto) = block(spacing: 3.8pt)[
+#let item-solucionario(num, letra, texto) = block(spacing: 8pt)[
   #grid(
-    columns: (18pt, 16pt, 1fr),
+    columns: (18pt, 20pt, 1fr),
     gutter: 4pt,
-    align: (horizon + left, horizon + center, horizon + left),
-    text(weight: "bold", size: ${(contenido * 0.90).toFixed(1)}pt, fill: rgb("#52796F"))[#num.],
-    circle(radius: 6pt, fill: rgb("#52796F"))[#align(center + horizon)[#text(size: ${(contenido * 0.72).toFixed(1)}pt, weight: "bold", fill: white)[#letra]]],
-    text(size: ${(contenido * 0.88).toFixed(1)}pt, fill: rgb("#2F3E46"))[#texto]
+    align: (top + left, top + center, top + left),
+    text(weight: "bold", size: ${(contenido * 0.95).toFixed(1)}pt, fill: rgb("#52796F"))[#num.],
+    box(
+      fill: rgb("#52796F"),
+      radius: 3pt,
+      width: 16pt,
+      height: 15pt,
+      align(center + horizon)[#text(size: ${(contenido * 0.95).toFixed(1)}pt, weight: "bold", fill: white)[#letra]]
+    ),
+    par(leading: 0.42em, justify: false)[#text(size: ${(contenido * 0.90).toFixed(1)}pt, fill: rgb("#1E293B"))[#texto]]
   )
 ]
 
@@ -710,19 +747,19 @@ function generateSolucionarioTypst(
     columns: (1fr, auto),
     align: horizon,
     [
-      #text(size: ${(titulos * 0.78).toFixed(1)}pt, weight: "bold", fill: rgb("#2F3E46"), font: "Helvetica Neue")[${isVa ? "SOLUCIONARI I CRITERIS DE CORRECCIÓ" : "SOLUCIONARIO Y CRITERIOS DE CORRECCIÓN"}] \\
+      #text(size: ${(titulos * 0.78).toFixed(1)}pt, weight: "bold", fill: rgb("#2F3E46"))[${isVa ? "SOLUCIONARI OFICIAL" : "SOLUCIONARIO OFICIAL"}] \\
       #v(2pt)
-      #text(size: 9pt, fill: rgb("#52796F"), font: "Helvetica Neue")[${sanitizeTypst(data.curso)} • ${sanitizeTypst(data.subtitulo)}]
+      #text(size: 9pt, fill: rgb("#52796F"))[${sanitizeTypst(data.curso)} • ${sanitizeTypst(data.subtitulo)}]
     ],
     box(fill: white, stroke: 0.6pt + rgb("#CAD2C5"), radius: 3pt, inset: (x: 8pt, y: 4pt))[
-      #text(size: 8.5pt, weight: "bold", fill: rgb("#52796F"), font: "Helvetica Neue")[${isVa ? "CLAU DOCENT" : "CLAVE DOCENTE"}]
+      #text(size: 8.5pt, weight: "bold", fill: rgb("#52796F"))[${isVa ? "CLAU DOCENT" : "CLAVE DOCENTE"}]
     ]
   )
 ]
 
-#v(8pt)
+#v(10pt)
 
-${respuestasTestTypst ? `#columns(2, gutter: 16pt)[\n${respuestasTestTypst}\n]\n#v(8pt)` : ''}
+${testGridTypst}
 
 ${desarrolloSolTypst}
 `;
