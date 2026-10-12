@@ -8,11 +8,15 @@ export async function initTypstCompiler(): Promise<any> {
   if (!compilerPromise) {
     compilerPromise = (async () => {
       try {
+        const baseUrl = import.meta.env.BASE_URL.endsWith('/')
+          ? import.meta.env.BASE_URL
+          : `${import.meta.env.BASE_URL}/`;
+
         const compiler = createTypstCompiler();
         await compiler.init({
-          getModule: () => '/typst_ts_web_compiler_bg.wasm',
+          getModule: () => `${baseUrl}typst_ts_web_compiler_bg.wasm`,
           beforeBuild: [
-            loadFonts(['/fonts/NotoSerifCJKsc-Regular.otf'], { assets: ['text', 'cjk'] })
+            loadFonts([`${baseUrl}fonts/NotoSerifCJKsc-Regular.otf`], { assets: ['text', 'cjk'] })
           ]
         });
         compilerInstance = compiler;

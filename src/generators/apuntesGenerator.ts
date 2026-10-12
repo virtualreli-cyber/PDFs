@@ -120,6 +120,9 @@ export function generateApuntesTypst(
       temaNum = line.substring(line.indexOf(':') + 1).trim();
       continue;
     }
+    if (line.startsWith('# IDIOMA:') || line.startsWith('# LLENGUA:') || line.startsWith('# LENGUA:') || line.startsWith('# LANG:') || line.startsWith('# LANGUAGE:')) {
+      continue;
+    }
 
     // Cabeceras alternativas de apuntes
     if (line.startsWith('# UNIDAD DIDACTICA:') || line.startsWith('# UNIDAD DIDÁCTICA:') || line.startsWith('# UNITAT DIDÀCTICA:')) {

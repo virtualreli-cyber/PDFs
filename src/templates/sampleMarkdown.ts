@@ -1,5 +1,6 @@
 export const SAMPLE_APUNTES_ES = `# UNIDAD DIDÁCTICA: LA DIGNIDAD HUMANA: VALOR ABSOLUTO Y FILIACIÓN DIVINA
 # CURSO: 4º ESO • RELIGIÓN CATÓLICA
+# IDIOMA: Castellano
 # TEMA: 01
 # SUBTÍTULO: Valor absoluto, respeto inviolable y fundamentación cristiana
 - **Bloque 1:** Fundamentos de la Dignidad
@@ -47,6 +48,7 @@ Frente al utilitarismo que descarta a los enfermos, ancianos o vulnerables, el E
 
 export const SAMPLE_APUNTES_VA = `# UNITAT DIDÀCTICA: LA DIGNITAT HUMANA: VALOR ABSOLUT I FILIACIÓ DIVINA
 # CURSO: 4t ESO • RELIGIÓ CATÒLICA
+# IDIOMA: Valencià
 # TEMA: 01
 # SUBTÍTULO: Valor absolut, respecte inviolable i fonamentació cristiana
 - **Bloc 1:** Fonaments de la Dignitat
@@ -92,6 +94,7 @@ La fe cristiana sosté que l'ésser humà posseïx un valor sagrat perquè ha si
 export const SAMPLE_EXAMEN_TEST_ES = `# TÍTULO: EXAMEN
 # SUBTÍTULO: Tema 03: Justicia Social y Dignidad Humana
 # CURSO: 2º ESO
+# IDIOMA: Castellano
 # TIPO: test
 # INSTRUCCIONES: Lee atentamente cada cuestión. Marca con una cruz o círculo la opción correcta para cada enunciado. Cada acierto suma 0,50 puntos. Las respuestas incorrectas no penalizan.
 
@@ -240,6 +243,266 @@ SOLUCIONARIO
 20. b) La obra de la justicia y el fruto del amor fraterno entre los pueblos.
 `;
 
+export const SAMPLE_EXAMEN_TEST_VA = `# TÍTULO: EXAMEN
+# SUBTÍTULO: Tema 03: Justícia Social i Dignitat Humana
+# CURSO: 2n ESO
+# IDIOMA: Valencià
+# TIPO: test
+# INSTRUCCIONES: Llig atentament cada qüestió. Marca amb una creu o cercle l'opció correcta per a cada enunciat. Cada encert suma 0,50 punts. Les respostes incorrectes no penalitzen.
+
+## PREGUNTES_TEST
+1. Quin és el fonament primer de la dignitat humana segons la fe cristiana?
+   a) El seu nivell econòmic i acadèmic.
+   *b) La seua creació a imatge i semblança de Déu.
+   c) El reconeixement formal que li atorguen les lleis de l'Estat.
+   d) Els beneficis pràctics que aporta a la societat.
+
+2. En què consisteix l'utilitarisme en les relacions humanes?
+   a) A prioritzar l'ajuda desinteressada cap als més vulnerables.
+   b) A defensar que els béns materials pertanyen a tots.
+   c) A organitzar les tasques escolars segons les preferències.
+   *d) A valorar les persones únicament pel profit o rendiment que ofereixen.
+
+3. Quina conseqüència té la denominada «cultura del descart»?
+   *a) Tractar els éssers humans fràgils o improductius com a objectes prescindibles.
+   b) Promoure el reciclatge sistemàtic de productes tèxtils.
+   c) Fomentar la igualtat salarial en sectors laborals precaris.
+   d) Impulsar la moderació voluntària en el consum de béns.
+
+4. Afirmar que la dignitat humana és intrínseca i inalienable significa que:
+   a) Depén exclusivament de l'aprovació del grup social.
+   b) Es pot perdre si la persona comet errors greus.
+   *c) Pertany a cada individu per si mateix i ningú li la pot arrabassar.
+   d) És concedida temporalment per les autoritats polítiques.
+
+5. Segons la doctrina de l'Església, la persona humana ha de ser tractada sempre com:
+   *a) Una finalitat en si mateixa, mai com un simple mitjà per a altres fins.
+   b) Un instrument útil per al desenvolupament econòmic del país.
+   c) Un recurs productiu subjecte a les lleis del lliure mercat.
+   d) Una peça intercanviable dins de les organitzacions socials.
+
+6. El principi de la destinació universal dels béns ensenya que:
+   a) La propietat privada és un dret il·limitat i absolut.
+   b) L'Estat ha de suprimir qualsevol forma de propietat individual.
+   c) La riquesa pertany únicament a qui dirigeix empreses.
+   *d) Els recursos de la creació estan destinats al sosteniment de tota la humanitat.
+
+7. Com concep la Doctrina Social de l'Església el dret a la propietat privada?
+   a) Com un privilegi exclusiu de les famílies amb rendes més altes.
+   *b) Com un dret legítim i necessari, subordinat sempre al bé comú.
+   c) Com una norma absoluta que no admet cap restricció moral.
+   d) Com un obstacle perjudicial per a la llibertat de les persones.
+
+8. L'expressió «hipoteca social» sobre les riqueses i béns materials implica que:
+   a) Les persones riques han de transferir obligatòriament les seues possessions.
+   b) La caritat privada substitueix per complet la justícia de l'Estat.
+   *c) Tota possessió s'ha d'utilitzar responsablement per a servir al bé comú.
+   d) Els ciutadans han de pagar quotes econòmiques addicionals a l'Església.
+
+9. Per què l'almoina no basta per a complir la justícia cristiana?
+   *a) Perquè donar coses supèrflues no repara les causes de la injustícia ni retorna el que és degut.
+   b) Perquè l'Església rebutja qualsevol acte de donació personal.
+   c) Perquè l'almoina només s'ha d'atorgar a qui no puga treballar.
+   d) Perquè el compromís moral només exigeix el compliment de lleis fiscals.
+
+10. El consum ètic i responsable es defineix moralment com:
+    a) La recerca exclusiva del preu més baix en el mercat internacional.
+    b) La compra constant de productes nous per a fomentar la indústria.
+    c) Un hàbit individual que no té conseqüències per a altres treballadors.
+    *d) Un acte moral que exigeix valorar les condicions humanes i ecològiques de producció.
+
+11. Quina virtut social capacita per a reconéixer els altres com a semblants i germans?
+    a) La competitivitat professional.
+    *b) La solidaritat cristiana.
+    c) L'individualisme defensiu.
+    d) La resignació passiva.
+
+12. En la paràbola del bon samarità, Jesús ensenya que proïsme és:
+    a) Exclusivament qui comparteix la mateixa religió i nació.
+    b) Aquell que pot tornar-nos el favor en el futur.
+    *c) Qualsevol que es trobe en necessitat i davant qui ens compadim.
+    d) Únicament els membres de la pròpia família.
+
+13. El principi de subsidiarietat estableix que:
+    *a) Les instàncies superiors no han d'absorbir les funcions que les inferiors poden realitzar.
+    b) L'Estat ha de centralitzar totes les decisions dels ciutadans.
+    c) La família no té dret a educar els seus fills segons les seues conviccions.
+    d) Les empreses privades han de substituir els serveis públics essencials.
+
+14. El treball humà té prioritat sobre el capital perquè:
+    a) Les màquines no requereixen manteniment tècnic.
+    *b) La persona és el subjecte i artífex conscient de tota tasca productiva.
+    c) Els diners perden el seu valor amb el pas dels anys.
+    d) Les lleis laborals prohibeixen la inversió financera en tecnologia.
+
+15. El salari just és aquell que permet:
+    a) Cobrir exclusivament les hores extraordinàries treballades.
+    b) Adquirir articles de luxe independentment de les necessitats reals.
+    *c) Sostindre dignament el treballador i la seua família amb accés a béns essencials.
+    d) Igualar matemàticament els ingressos de tots els empleats del sector.
+
+16. La Doctrina Social de l'Església va tindre el seu inici formal amb l'encíclica:
+    a) Laudato Si' del papa Francesc.
+    *b) Rerum Novarum del papa Lleó XIII en 1891.
+    c) Pacem in Terris del papa Joan XXIII.
+    d) Centesimus Annus del papa Joan Pau II.
+
+17. El bé comú es defineix teològicament com:
+    a) La suma aritmètica dels diners acumulats per l'administració pública.
+    *b) El conjunt de condicions socials que permeten a les persones assolir la seua plenitud.
+    c) La imposició de la voluntat de la majoria sobre les minories vulnerables.
+    d) La satisfacció immediata dels desitjos de l'individu aïllat.
+
+18. Davant la desocupació juvenil i precària, l'Església proposa:
+    a) L'acceptació resignada de les lleis impersonals del mercat.
+    b) L'emigració forçosa com a única solució raonable.
+    *c) La creació d'ocupació digna, formació integral i justícia en la contractació.
+    d) La reducció de la jornada escolar per a iniciar el treball prompte.
+
+19. L'opció preferencial pels pobres exigeix dels cristians:
+    *a) Posar en el centre de les decisions pastorals i socials la defensa dels vulnerables.
+    b) Excloure del diàleg pastoral les persones amb més recursos.
+    c) Reclamar privilegis jurídics exclusius davant els tribunals de justícia.
+    d) Desentendre's de la vida política i ciutadana del país.
+
+20. La pau autèntica en l'ensenyament de l'Església no és mera absència de guerra, sinó:
+    a) El silenci forçat davant les protestes socials.
+    *b) L'obra de la justícia i el fruit de l'amor fratern entre els pobles.
+    c) L'equilibri militar de forces entre potències armades.
+    d) Un ideal inassolible reservat per al final de la història.
+
+---
+SOLUCIONARI
+1. b) La seua creació a imatge i semblança de Déu.
+2. d) A valorar les persones únicament pel profit o rendiment que ofereixen.
+3. a) Tractar els éssers humans fràgils o improductius com a objectes prescindibles.
+4. c) Pertany a cada individu per si mateix i ningú li la pot arrabassar.
+5. a) Una finalitat en si mateixa, mai com un simple mitjà per a altres fins.
+6. d) Els recursos de la creació estan destinats al sosteniment de tota la humanitat.
+7. b) Com un dret legítim i necessari, subordinat sempre al bé comú.
+8. c) Tota possessió s'ha d'utilitzar responsablement per a servir al bé comú.
+9. a) Perquè donar coses supèrflues no repara les causes de la injustícia ni retorna el que és degut.
+10. d) Un acte moral que exigeix valorar les condicions humanes i ecològiques de producció.
+11. b) La solidaritat cristiana.
+12. c) Qualsevol que es trobe en necessitat i davant qui ens compadim.
+13. a) Les instàncies superiors no han d'absorbir les funcions que les inferiors poden realitzar.
+14. b) La persona és el subjecte i artífex conscient de tota tasca productiva.
+15. c) Sostindre dignament el treballador i la seua família amb accés a béns essencials.
+16. b) Rerum Novarum del papa Lleó XIII en 1891.
+17. b) El conjunt de condicions socials que permeten a les persones assolir la seua plenitud.
+18. c) La creació d'ocupació digna, formació integral i justícia en la contractació.
+19. a) Posar en el centre de les decisions pastorals i socials la defensa dels vulnerables.
+20. b) L'obra de la justícia i el fruit de l'amor fratern entre els pobles.
+`;
+
+export const SAMPLE_EXAMEN_MIXTO_VA = `# TÍTULO: EXAMEN MIXTO
+# SUBTÍTULO: Tema 03: Justícia Social i Dignitat Humana
+# CURSO: 2n ESO
+# TIPO: mixto
+# INSTRUCCIONES: PART I (Test): Respon a les preguntes d'opció múltiple (5,0 punts). PART II (Desenvolupament): Respon amb claredat i rigor en l'espai pautat (5,0 punts).
+
+## PREGUNTES_TEST
+1. Quin és el fonament primer de la dignitat humana segons la fe cristiana?
+   a) El seu nivell econòmic i acadèmic.
+   *b) La seua creació a imatge i semblança de Déu.
+   c) El reconeixement formal que li atorguen les lleis de l'Estat.
+   d) Els beneficis pràctics que aporta a la societat.
+
+2. En què consisteix l'utilitarisme en les relacions humanes?
+   a) A prioritzar l'ajuda desinteressada cap als més vulnerables.
+   b) A defensar que els béns materials pertanyen a tots.
+   c) A organitzar les tasques escolars segons les preferències.
+   *d) A valorar les persones únicament pel profit o rendiment que ofereixen.
+
+3. Quina conseqüència té la denominada «cultura del descart»?
+   *a) Tractar els éssers humans fràgils o improductius com a objectes prescindibles.
+   b) Promoure el reciclatge sistemàtic de productes tèxtils.
+   c) Fomentar la igualtat salarial en sectors laborals precaris.
+   d) Impulsar la moderació voluntària en el consum de béns.
+
+4. Afirmar que la dignitat humana és intrínseca i inalienable significa que:
+   a) Depén exclusivament de l'aprovació del grup social.
+   b) Es pot perdre si la persona comet errors greus.
+   *c) Pertany a cada individu per si mateix i ningú li la pot arrabassar.
+   d) És concedida temporalment per les autoritats polítiques.
+
+5. Segons la doctrina de l'Església, la persona humana ha de ser tractada sempre com:
+   *a) Una finalitat en si mateixa, mai com un simple mitjà per a altres fins.
+   b) Un instrument útil per al desenvolupament econòmic del país.
+   c) Un recurs productiu subjecte a les lleis del lliure mercat.
+   d) Una peça intercanviable dins de les organitzacions socials.
+
+6. El principi de la destinació universal dels béns ensenya que:
+   a) La propietat privada és un dret il·limitat i absolut.
+   b) L'Estat ha de suprimir qualsevol forma de propietat individual.
+   c) La riquesa pertany únicament a qui dirigeix empreses.
+   *d) Els recursos de la creació estan destinats al sosteniment de tota la humanitat.
+
+7. Com concep la Doctrina Social de l'Església el dret a la propietat privada?
+   a) Com un privilegi exclusiu de les famílies amb rendes més altes.
+   *b) Com un dret legítim i necessari, subordinat sempre al bé comú.
+   c) Com una norma absoluta que no admet cap restricció moral.
+   d) Com un obstacle perjudicial per a la llibertat de les persones.
+
+8. L'expressió «hipoteca social» sobre les riqueses i béns materials implica que:
+   a) Les persones riques han de transferir obligatòriament les seues possessions.
+   b) La caritat privada substitueix per complet la justícia de l'Estat.
+   *c) Tota possessió s'ha d'utilitzar responsablement per a servir al bé comú.
+   d) Els ciutadans han de pagar quotes econòmiques addicionals a l'Església.
+
+9. Per què l'almoina no basta per a complir la justícia cristiana?
+   *a) Perquè donar coses supèrflues no repara les causes de la injustícia ni retorna el que és degut.
+   b) Perquè l'Església rebutja qualsevol acte de donació personal.
+   c) Perquè l'almoina només s'ha d'atorgar a qui no puga treballar.
+   d) Perquè el compromís moral només exigeix el compliment de lleis fiscals.
+
+10. El consum ètic i responsable es defineix moralment com:
+    a) La recerca exclusiva del preu més baix en el mercat internacional.
+    b) La compra constant de productes nous per a fomentar la indústria.
+    c) Un hàbit individual que no té conseqüències per a altres treballadors.
+    *d) Un acte moral que exigeix valorar les condicions humanes i ecològiques de producció.
+
+---
+
+## PREGUNTES_DESARROLLO
+1. [2,0 ptos] Explica la distinció moral entre preu i dignitat humana segons Immanuel Kant i la Doctrina Social de l'Església.
+- Pautes: Diferència entre coses intercanviables i subjectes amb valor absolut; concepte de finalitat en si mateix vs. mitjà utilitari.
+- Línies: 6
+
+2. [2,0 ptos] Analitza el principi de la «destinació universal dels béns» i com es relaciona amb el dret legítim a la propietat privada.
+- Pautes: Explicació de la hipoteca social sobre la riquesa, subordinació al bé comú i crítica a l'egoisme econòmic.
+- Línies: 6
+
+3. [2,0 ptos] Proposa dues accions concretes que un estudiant de 2n d'ESO pot dur a terme en la seua vida diària per a oposar-se a la «cultura del descart».
+- Pautes: Exemples en l'entorn escolar o digital i fonamentació en l'amor fratern i la solidaritat.
+- Línies: 6
+`;
+
+export const SAMPLE_EXAMEN_DESARROLLO_VA = `# TÍTULO: EXAMEN DE DESENVOLUPAMENT
+# SUBTÍTULO: Tema 03: Justícia Social i Dignitat Humana
+# CURSO: 2n ESO
+# TIPO: desarrollo
+# INSTRUCCIONES: Respon de manera raonada a cadascuna de les qüestions proposades, emprant el vocabulari teològic i moral adequat i respectant l'espai d'escriptura pautat.
+
+## PREGUNTES_DESARROLLO
+1. [3,0 ptos] CONCEPTES CLAU: La dignitat humana enfront de la cultura del descart i l'utilitarisme moral.
+- Pautes: Defineix el concepte de dignitat com a valor intrínsec i inalienable derivat de la creació a imatge de Déu (Imago Dei). Contrasta aquesta veritat amb la cosificació utilitarista que redueix les persones a mers instruments de profit econòmic o social.
+- Línies: 8
+
+2. [2,5 ptos] ANÀLISI DE TEXT: Comentari de l'encíclica social «Gaudium et Spes», n. 24.
+> «L'home és l'única criatura a la terra a la qual Déu ha estimat per si mateixa; per això, no pot trobar-se plenament sinó en l'entrega sincera de si mateix als altres».
+- Pautes: Explica el significat teològic de ser estimat «per si mateix» i relaciona aquesta afirmació amb la regla d'or kantiana de tractar el proïsme sempre com una finalitat i mai com un simple mitjà.
+- Línies: 8
+
+3. [2,5 ptos] DOCTRINA SOCIAL: La destinació universal dels béns i la funció social de la propietat.
+- Pautes: Exposa per què els recursos creats pertanyen originàriament a tota la humanitat i com la propietat privada, sent legítima, porta aparellada una innegociable «hipoteca social» al servei del bé comú.
+- Línies: 8
+
+4. [2,0 ptos] APLICACIÓ PRÀCTICA: Compromís ètic i consum responsable en la vida quotidiana de l'alumnat.
+- Pautes: Analitza com els nostres hàbits diaris de consum (moda ràpida, tecnologia, relacions en xarxes socials) impacten en la dignitat de treballadors vulnerables i proposa tres compromisos cristians coherents.
+- Línies: 8
+`;
+
 export const SAMPLE_EXAMEN_MIXTO_ES = `# TÍTULO: EXAMEN MIXTO
 # SUBTÍTULO: Tema 03: Justicia Social y Dignidad Humana
 # CURSO: 2º ESO
@@ -350,6 +613,7 @@ export const SAMPLE_EXAMEN_DESARROLLO_ES = `# TÍTULO: EXAMEN DE DESARROLLO
 
 export const SAMPLE_TAREAS_ES = `# ASIGNATURA: RELIGIÓN CATÓLICA
 # CURSO: 2º ESO
+# IDIOMA: Castellano
 # TÍTULO: HISTORIA DE LA IGLESIA PRIMITIVA: MISIÓN Y TESTIMONIO
 
 ## ACTIVIDAD 1: Ficha biográfica comparada: Pedro y Pablo en Roma
@@ -386,6 +650,7 @@ export const SAMPLE_TAREAS_ES = `# ASIGNATURA: RELIGIÓN CATÓLICA
 
 export const SAMPLE_TAREAS_VA = `# ASIGNATURA: RELIGIÓ CATÒLICA
 # CURSO: 2n ESO
+# IDIOMA: Valencià
 # TÍTULO: HISTÒRIA DE L'ESGLÉSIA PRIMITIVA: MISSIÓ I TESTIMONI
 
 ## ACTIVITAT 1: Fitxa biogràfica comparada: Pere i Pau a Roma

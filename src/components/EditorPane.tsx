@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import type { SectionType, Language, ApuntesMode, ExamenTipo, ExamenDocType, FontSizesConfig, ExamenVersion } from '../types';
 import { QuickInsertBar } from './QuickInsertBar';
-import { RotateCcw, Trash2, Scissors, CheckCircle2, Type, Shuffle, Plus } from 'lucide-react';
+import { RotateCcw, Trash2, Scissors, CheckCircle2, Type, Shuffle, Plus, Sparkles } from 'lucide-react';
 
 interface EditorPaneProps {
   section: SectionType;
@@ -23,7 +23,9 @@ interface EditorPaneProps {
   examenVersions?: ExamenVersion[];
   activeVersionId?: string;
   onSelectVersion?: (id: string) => void;
-  onAddVersion?: () => void;
+  onAddVersionUnica?: () => void;
+  onAddVersionReferenciada?: () => void;
+  onToggleUnica?: () => void;
   onDeleteVersion?: (id: string) => void;
   onShufflePreguntas?: () => void;
   onShuffleRespuestas?: () => void;
@@ -54,7 +56,9 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
   examenVersions,
   activeVersionId,
   onSelectVersion,
-  onAddVersion,
+  onAddVersionUnica,
+  onAddVersionReferenciada,
+  onToggleUnica,
   onDeleteVersion,
   onShufflePreguntas,
   onShuffleRespuestas,
@@ -67,6 +71,7 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isVa = lang === 'va';
+  const activeVersion = examenVersions?.find(v => v.id === activeVersionId);
 
   // Etiquetas contextuales según la vista activa
   const getLabels = () => {
@@ -279,41 +284,97 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
       {/* Barra de versiones de examen */}
       {section === 'examenes' && examenVersions && examenVersions.length > 0 && (
         <div className="exam-versions-bar">
-          <span className="exam-version-label">{isVa ? 'Versions:' : 'Versiones:'}</span>
-          <div className="exam-versions-list">
-            {examenVersions.map((v) => (
-              <div key={v.id} className={`version-pill ${v.id === activeVersionId ? 'active' : ''}`}>
-                <button
-                  type="button"
-                  className="version-pill-btn"
-                  onClick={() => onSelectVersion?.(v.id)}
-                  title={isVa ? `Veure i editar ${v.nombre}` : `Ver y editar ${v.nombre}`}
+          <div className="exam-versions-left">
+            <span className="exam-version-label">{isVa ? 'Versions:' : 'Versiones:'}</span>
+            <div className="exam-versions-list">
+              {examenVersions.map((v) => (
+                <div
+                  key={v.id}
+                  className={`version-pill ${v.id === activeVersionId ? 'active' : ''} ${v.esUnica !== false ? 'is-unica' : 'is-referenciada'}`}
                 >
-                  {v.nombre}
-                </button>
-                {examenVersions.length > 1 && (
                   <button
                     type="button"
-                    className="version-delete-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteVersion?.(v.id);
-                    }}
-                    title={isVa ? `Eliminar ${v.nombre}` : `Eliminar ${v.nombre}`}
+                    className="version-pill-btn"
+                    onClick={() => onSelectVersion?.(v.id)}
+                    title={isVa
+                      ? (v.esUnica !== false ? `Versió Única: ${v.nombre} (sense codi ni referència)` : `Versió Referenciada: ${v.nombre} (amb codi EV)`)
+                      : (v.esUnica !== false ? `Versión Única: ${v.nombre} (sin código ni referencia)` : `Versión Referenciada: ${v.nombre} (con código EV)`)
+                    }
                   >
-                    ×
+                    <span className="pill-badge-icon">
+                      {v.esUnica !== false ? '⭐' : '🏷️'}
+                    </span>
+                    <span>{v.nombre}</span>
                   </button>
-                )}
-              </div>
-            ))}
+                  {examenVersions.length > 1 && (
+                    <button
+                      type="button"
+                      className="version-delete-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteVersion?.(v.id);
+                      }}
+                      title={isVa ? `Eliminar ${v.nombre}` : `Eliminar ${v.nombre}`}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              <button
+                type="button"
+                className="version-add-unica-btn"
+                onClick={onAddVersionUnica}
+                title={isVa
+                  ? "Crear una nova versió única (no portarà mai codi EV ni referència de versió en cap document ni nom de fitxer)"
+                  : "Crear una nueva versión única (no llevará nunca código EV ni referencia de versión en ningún documento ni nombre de archivo)"
+                }
+              >
+                <Sparkles className="w-3 h-3 inline-block mr-0.5 text-amber-500" />
+                <span>{isVa ? '+ Versió única' : '+ Versión única'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="version-add-ref-btn"
+                onClick={onAddVersionReferenciada}
+                title={isVa
+                  ? "Crear una nova versió referenciada (amb codi EV-X al peu i preguntes/respostes barrejades)"
+                  : "Crear una nueva versión referenciada (con código EV-X al pie y preguntas/respuestas barajadas)"
+                }
+              >
+                <Plus className="w-3 h-3 inline-block mr-0.5" />
+                <span>{isVa ? '+ Amb ref.' : '+ Con ref.'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="exam-versions-right">
             <button
               type="button"
-              className="version-add-btn"
-              onClick={onAddVersion}
-              title={isVa ? "Crear una nova versió amb preguntes i respostes aleatoritzades" : "Crear una nueva versión con preguntas y respuestas aleatorizadas"}
+              className={`btn-unica-toggle ${activeVersion?.esUnica !== false ? 'active-unica' : 'active-ref'}`}
+              onClick={onToggleUnica}
+              title={isVa
+                ? (activeVersion?.esUnica !== false
+                    ? "Versió única activa (sense codis). Fes clic per canviar-la a versió amb referència."
+                    : "Versió amb referència activa (EV-X). Fes clic per convertir-la en versió única.")
+                : (activeVersion?.esUnica !== false
+                    ? "Versión única activa (sin códigos). Clic para cambiarla a versión con referencia."
+                    : "Versión con referencia activa (EV-X). Clic para convertirla en versión única.")
+              }
             >
-              <Plus className="w-3 h-3 inline-block mr-0.5" />
-              {isVa ? 'Nova versió' : 'Nueva versión'}
+              {activeVersion?.esUnica !== false ? (
+                <>
+                  <span>⭐</span>
+                  <span>{isVa ? 'Única' : 'Única'}</span>
+                </>
+              ) : (
+                <>
+                  <span>🏷️</span>
+                  <span>{isVa ? 'Amb ref.' : 'Con ref.'}</span>
+                </>
+              )}
             </button>
           </div>
         </div>

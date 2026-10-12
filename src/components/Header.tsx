@@ -21,7 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="app-header">
       <div className="header-brand">
         <div className="brand-logo">
-          <BookOpen className="w-5 h-5 text-emerald-800" />
+          <BookOpen className="w-3.5 h-3.5 text-emerald-800" />
         </div>
         <div className="brand-titles">
           <h1>{lang === 'va' ? 'Editorial Religió' : 'Editorial Religión'}</h1>
@@ -35,7 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
           className={`nav-tab ${currentSection === 'apuntes' ? 'active' : ''}`}
           onClick={() => onSectionChange('apuntes')}
         >
-          <BookOpen className="w-4 h-4" />
+          <BookOpen className="w-3.5 h-3.5" />
           <span>{lang === 'va' ? 'Apunts' : 'Apuntes'}</span>
         </button>
 
@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
           className={`nav-tab ${currentSection === 'examenes' ? 'active' : ''}`}
           onClick={() => onSectionChange('examenes')}
         >
-          <FileText className="w-4 h-4" />
+          <FileText className="w-3.5 h-3.5" />
           <span>{lang === 'va' ? 'Exàmens' : 'Exámenes'}</span>
         </button>
 
@@ -53,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
           className={`nav-tab ${currentSection === 'tareas' ? 'active' : ''}`}
           onClick={() => onSectionChange('tareas')}
         >
-          <CheckSquare className="w-4 h-4" />
+          <CheckSquare className="w-3.5 h-3.5" />
           <span>{lang === 'va' ? 'Tasques' : 'Tareas'}</span>
         </button>
       </nav>

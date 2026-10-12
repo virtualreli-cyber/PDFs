@@ -61,6 +61,7 @@ export function extractExamenQuestions(markdown: string) {
   const headerLines: string[] = [];
   const testQuestions: TestQuestion[] = [];
   const middleOrDesarrolloLines: string[] = [];
+  const solucionarioKeys = new Map<number, string>();
   let inSolucionario = false;
 
   let i = 0;
@@ -70,8 +71,9 @@ export function extractExamenQuestions(markdown: string) {
     const raw = lines[i];
     const trimmed = raw.trim();
 
-    // Detección de bloque solucionario
-    if (/^(?:#+\s*)?(?:SOLUCIONARIO|SOLUCIONS|SOLUCIONES|CLAVE DE RESPUESTAS|CLAU DE RESPOSTES)\b/i.test(trimmed)) {
+    // Detección de bloque solucionario (Castellano y Valenciano)
+    const cleanHeader = trimmed.replace(/^#+\s*|\*{2,}|_{2,}/g, '').replace(/\*{2,}|_{2,}$/g, '').trim();
+    if (/^(?:SOLUCIONARIO|SOLUCIONARI|SOLUCIONS|SOLUCIONES|CLAVE DE RESPUESTAS|CLAU DE RESPOSTES|CLAU DE CORRECCI[ÓO]|CLAVE DE CORRECCI[ÓO]N|RESPUESTAS CORRECTAS|RESPOSTES CORRECTES|RESPUESTAS|RESPOSTES|CLAVE|CLAU)\b/i.test(cleanHeader)) {
       if (currentQ) {
         testQuestions.push(currentQ);
         currentQ = null;
@@ -82,6 +84,12 @@ export function extractExamenQuestions(markdown: string) {
     }
 
     if (inSolucionario) {
+      const solMatch = trimmed.match(/^(?:[-*•]\s*)?\*?(\d+)(?:[\.\):]|\s+-\s*|\s+)\s*[\(\[\*]?([a-dA-D])[\)\]\.\:\-\*]?/);
+      if (solMatch) {
+        const qNum = parseInt(solMatch[1], 10);
+        const letra = solMatch[2].toLowerCase();
+        solucionarioKeys.set(qNum, letra);
+      }
       i++;
       continue;
     }
@@ -112,14 +120,18 @@ export function extractExamenQuestions(markdown: string) {
     const optMatch = trimmed.match(/^(?:[-*•]\s*)?(\*?)\(?([a-dA-D])[\)\.]\s*(.+)/i);
     if (optMatch && currentQ) {
       const isAsterisk = optMatch[1] === '*' || trimmed.startsWith('*') || /^\(?\*?[a-dA-D][\)\.]\s*\*/.test(trimmed);
-      const isMarker = /\[CORRECTA\]|\[X\]|\(CORRECTA\)|\(X\)/i.test(trimmed);
+      const isMarker = /\[CORRECTA\]|\[CORRECTE\]|\[X\]|\(CORRECTA\)|\(CORRECTE\)|\(X\)|\[VERITABLE\]|\[CERT\]/i.test(trimmed);
       const isCorrecta = isAsterisk || isMarker;
       const letra = optMatch[2].toLowerCase();
       const texto = optMatch[3]
         .replace(/\[CORRECTA\]/gi, '')
+        .replace(/\[CORRECTE\]/gi, '')
         .replace(/\[X\]/gi, '')
         .replace(/\(CORRECTA\)/gi, '')
+        .replace(/\(CORRECTE\)/gi, '')
         .replace(/\(X\)/gi, '')
+        .replace(/\[VERITABLE\]/gi, '')
+        .replace(/\[CERT\]/gi, '')
         .replace(/\*\*(.*?)\*\*/g, '$1')
         .replace(/__(.*?)__/g, '$1')
         .replace(/^\*+|\*+$/g, '')
@@ -190,11 +202,21 @@ export function extractExamenQuestions(markdown: string) {
     testQuestions.push(currentQ);
   }
 
-  // Asegurar que cada pregunta tenga al menos 1 opción marcada como correcta
+  // Asegurar que cada pregunta tenga la opción correcta vinculada
   for (const q of testQuestions) {
     const hasCorrect = q.opciones.some(o => o.correcta);
-    if (!hasCorrect && q.opciones.length > 0) {
-      q.opciones[0].correcta = true;
+    if (!hasCorrect) {
+      if (solucionarioKeys.has(q.num)) {
+        const solLetra = solucionarioKeys.get(q.num)!;
+        const opt = q.opciones.find((o, idx) => o.letra.toLowerCase() === solLetra || LETTERS[idx] === solLetra);
+        if (opt) {
+          opt.correcta = true;
+        } else if (q.opciones.length > 0) {
+          q.opciones[0].correcta = true;
+        }
+      } else if (q.opciones.length > 0) {
+        q.opciones[0].correcta = true;
+      }
     }
   }
 

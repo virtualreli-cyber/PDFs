@@ -58,6 +58,10 @@ export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
       i++;
       continue;
     }
+    if (line.startsWith('# IDIOMA:') || line.startsWith('# LLENGUA:') || line.startsWith('# LENGUA:') || line.startsWith('# LANG:') || line.startsWith('# LANGUAGE:')) {
+      i++;
+      continue;
+    }
 
     // Detección de inicio de actividad / proyecto
     const isActLine = (line.startsWith('## ') || line.startsWith('# ACTIVIDAD') || line.startsWith('# PROYECTO') || line.startsWith('# PORTFOLIO')) &&

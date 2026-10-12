@@ -66,6 +66,9 @@ export function parseExamenMarkdown(markdown: string) {
       curso = line.substring(line.indexOf(':') + 1).trim();
       continue;
     }
+    if (line.startsWith('# IDIOMA:') || line.startsWith('# LLENGUA:') || line.startsWith('# LENGUA:') || line.startsWith('# LANG:') || line.startsWith('# LANGUAGE:')) {
+      continue;
+    }
     
     // Detección robusta de instrucciones editables en Markdown
     const instMatch = line.match(/^(?:#\s*|\*{2}|>\s*\*{2}|-\s*)?(?:INSTRUCCIONES|INSTRUCCIONS):?\*{0,2}\s*(.*)/i);
@@ -79,8 +82,9 @@ export function parseExamenMarkdown(markdown: string) {
       continue;
     }
 
-    // Detección de cabecera de SOLUCIONARIO al final del documento
-    const isSolucionarioHeader = /^(?:#+\s*)?(?:SOLUCIONARIO|SOLUCIONS|SOLUCIONES|CLAVE DE RESPUESTAS|CLAU DE RESPOSTES|CLAVE|CLAU|RESPUESTAS CORRECTAS|RESPOSTES CORRECTES|RESPUESTAS|RESPOSTES)\b/i.test(line);
+    // Detección de cabecera de SOLUCIONARIO al final del documento (Castellano y Valenciano)
+    const cleanHeaderLine = line.replace(/^#+\s*|\*{2,}|_{2,}/g, '').replace(/\*{2,}|_{2,}$/g, '').trim();
+    const isSolucionarioHeader = /^(?:SOLUCIONARIO|SOLUCIONARI|SOLUCIONS|SOLUCIONES|CLAVE DE RESPUESTAS|CLAU DE RESPOSTES|CLAU DE CORRECCI[ÓO]|CLAVE DE CORRECCI[ÓO]N|RESPUESTAS CORRECTAS|RESPOSTES CORRECTES|RESPUESTAS|RESPOSTES|CLAVE|CLAU)\b/i.test(cleanHeaderLine);
     if (isSolucionarioHeader) {
       inSolucionarioSection = true;
       currentTest = null;
@@ -201,14 +205,18 @@ export function parseExamenMarkdown(markdown: string) {
     const optMatch = line.match(/^(?:[-*•]\s*)?(\*?)\(?([a-dA-D])[\)\.]\s*(.+)/i);
     if (optMatch && currentTest) {
       const isAsteriskMarked = optMatch[1] === '*' || line.startsWith('*') || /^\(?\*?[a-dA-D][\)\.]\s*\*/.test(line);
-      const isMarkerMarked = /\[CORRECTA\]|\[X\]|\(CORRECTA\)|\(X\)/i.test(line);
+      const isMarkerMarked = /\[CORRECTA\]|\[CORRECTE\]|\[X\]|\(CORRECTA\)|\(CORRECTE\)|\(X\)|\[VERITABLE\]|\[CERT\]/i.test(line);
       const isCorrecta = isAsteriskMarked || isMarkerMarked;
       const letra = optMatch[2].toLowerCase();
       const texto = optMatch[3]
         .replace(/\[CORRECTA\]/gi, '')
+        .replace(/\[CORRECTE\]/gi, '')
         .replace(/\[X\]/gi, '')
         .replace(/\(CORRECTA\)/gi, '')
+        .replace(/\(CORRECTE\)/gi, '')
         .replace(/\(X\)/gi, '')
+        .replace(/\[VERITABLE\]/gi, '')
+        .replace(/\[CERT\]/gi, '')
         .replace(/\*\*(.*?)\*\*/g, '$1')
         .replace(/__(.*?)__/g, '$1')
         .replace(/^\*+|\*+$/g, '')
@@ -349,17 +357,18 @@ export function generateExamenTypst(
   lang: Language,
   preguntasPorPagina?: string,
   fontSizes?: FontSizesConfig,
-  versionName?: string
+  versionName?: string,
+  hasMultipleVersions: boolean = false
 ): string {
   const isVa = lang === 'va';
   const data = parseExamenMarkdown(markdown);
   const distSetting = preguntasPorPagina?.trim() || data.preguntasPagina?.trim() || (tipo === 'test' ? '10, 10' : '10');
 
   if (docType === 'solucionario') {
-    return generateSolucionarioTypst(data, tipo, isVa, fontSizes, versionName);
+    return generateSolucionarioTypst(data, tipo, isVa, fontSizes, versionName, hasMultipleVersions);
   }
 
-  return generateExamenCompletoTypst(data, tipo, isVa, distSetting, fontSizes, versionName);
+  return generateExamenCompletoTypst(data, tipo, isVa, distSetting, fontSizes, versionName, hasMultipleVersions);
 }
 
 // -------------------------------------------------------------
@@ -371,19 +380,23 @@ function generateExamenCompletoTypst(
   isVa: boolean,
   distSetting: string,
   fontSizes?: FontSizesConfig,
-  versionName?: string
+  versionName?: string,
+  hasMultipleVersions: boolean = false
 ): string {
-  const titulos = fontSizes?.titulos ?? 18.0;
-  const apartados = fontSizes?.apartados ?? 10.8;
-  const contenido = fontSizes?.contenido ?? 10.5;
-  const instruccionesSize = fontSizes?.instrucciones ?? 9.5;
+  const titulos = fontSizes?.titulos ?? 16.0;
+  const apartados = fontSizes?.apartados ?? 9.0;
+  const contenido = fontSizes?.contenido ?? 9.0;
+  const instruccionesSize = fontSizes?.instrucciones ?? 8.0;
 
   const headerDept = isVa ? "DEPARTAMENT DE RELIGIÓ CATÒLICA" : "DEPARTAMENTO DE RELIGIÓN CATÓLICA";
 
   // Código de versión cifrado sutil para uso docente (Ref. EV-1, Ref. EV-2...)
+  // ÚNICAMENTE si hay más de una versión. Si es versión única, solo el nombre del departamento.
   const verMatch = versionName?.match(/\d+/);
   const verNum = verMatch ? verMatch[0] : '1';
-  const versionCodedRef = `Ref. EV-${verNum}`;
+  const footerLeftText = hasMultipleVersions
+    ? `${headerDept} • Ref. EV-${verNum}`
+    : headerDept;
 
   // Tema limpio para la cabecera de las páginas sucesivas (sin "Examen" ni cursos)
   const headerTheme = sanitizeTypst(
@@ -592,7 +605,7 @@ ${rightCode}
     #grid(
       columns: (1fr, auto),
       align: (left + horizon, right + horizon),
-      text(8pt, fill: rgb("#52796F"), font: "Helvetica Neue")[${headerDept} • ${versionCodedRef}],
+      text(8pt, fill: rgb("#52796F"), font: "Helvetica Neue")[${footerLeftText}],
       box(
         fill: rgb("#EDF4F2"),
         stroke: 0.5pt + rgb("#CAD2C5"),
@@ -729,19 +742,41 @@ ${bodyTypstChunks.join('\n')}
 // -------------------------------------------------------------
 function generateSolucionarioTypst(
   data: ReturnType<typeof parseExamenMarkdown>,
-  _tipo: ExamenTipo,
+  tipo: ExamenTipo,
   isVa: boolean,
   fontSizes?: FontSizesConfig,
-  versionName?: string
+  versionName?: string,
+  hasMultipleVersions: boolean = false
 ): string {
-  const titulos = fontSizes?.titulos ?? 18.0;
-  const contenido = fontSizes?.contenido ?? 10.5;
+  const titulos = fontSizes?.titulos ?? 16.0;
+  const contenido = fontSizes?.contenido ?? 9.0;
   const headerDept = isVa ? "DEPARTAMENT DE RELIGIÓ CATÒLICA" : "DEPARTAMENTO DE RELIGIÓN CATÓLICA";
 
-  // Código de versión cifrado correspondiente al examen del alumno
+  // Mostrar versión y código docente ÚNICAMENTE si hay múltiples versiones
+  const showVersion = hasMultipleVersions && !!versionName;
   const verMatch = versionName?.match(/\d+/);
   const verNum = verMatch ? verMatch[0] : '1';
-  const versionCodedRef = `Ref. EV-${verNum}`;
+  const versionCodedRef = showVersion ? `Ref. EV-${verNum}` : '';
+
+  const headerRightText = showVersion
+    ? `${isVa ? "SOLUCIONARI OFICIAL" : "SOLUCIONARIO OFICIAL"} • ${versionName!.toUpperCase()} (${versionCodedRef})`
+    : `${isVa ? "SOLUCIONARI OFICIAL" : "SOLUCIONARIO OFICIAL"}`;
+
+  const footerLeftText = showVersion
+    ? `${headerDept} • SOLUCIONARIO • ${versionCodedRef}`
+    : `${headerDept} • ${isVa ? "SOLUCIONARI" : "SOLUCIONARIO"}`;
+
+  const bannerTitleText = showVersion
+    ? `${isVa ? "SOLUCIONARI OFICIAL" : "SOLUCIONARIO OFICIAL"} • ${versionName!.toUpperCase()}`
+    : `${isVa ? "SOLUCIONARI OFICIAL" : "SOLUCIONARIO OFICIAL"}`;
+
+  const bannerSubText = showVersion
+    ? `${sanitizeTypst(data.curso)} • ${sanitizeTypst(data.subtitulo)} • #strong[${versionCodedRef}]`
+    : `${sanitizeTypst(data.curso)} • ${sanitizeTypst(data.subtitulo)}`;
+
+  const badgeText = showVersion
+    ? `${versionName!.toUpperCase()} • ${versionCodedRef}`
+    : (isVa ? "CLAU DOCENT" : "CLAVE DOCENTE");
 
   function renderItemSolucionario(q: PreguntaTest) {
     const c = q.opciones.find(o => o.correcta);
@@ -788,8 +823,9 @@ ${rightCode}
     return chunks.join('\n');
   }
 
-  // Criterios de desarrollo en el solucionario
-  const desarrolloSolTypst = data.preguntasDesarrollo.length > 0 ? `
+  // Criterios de desarrollo en el solucionario (SOLO si no es examen de test y existen preguntas de desarrollo reales)
+  const showDesarrolloSol = tipo !== 'test' && data.preguntasDesarrollo.length > 0;
+  const desarrolloSolTypst = showDesarrolloSol ? `
 #v(10pt)
 #line(length: 100%, stroke: 0.6pt + rgb("#CAD2C5"))
 #v(5pt)
@@ -823,7 +859,7 @@ ${rightCode}
       columns: (1fr, auto),
       align: (left + bottom, right + bottom),
       text(8.8pt, fill: rgb("#52796F"), font: "Helvetica Neue", weight: "bold")[${sanitizeTypst(data.curso)} • ${sanitizeTypst(data.titulo.toUpperCase())}],
-      text(8.8pt, fill: rgb("#D08C51"), font: "Helvetica Neue", weight: "bold")[${isVa ? "SOLUCIONARI OFICIAL" : "SOLUCIONARIO OFICIAL"}${versionName ? ` • ${versionName.toUpperCase()} (${versionCodedRef})` : ''}]
+      text(8.8pt, fill: rgb("#D08C51"), font: "Helvetica Neue", weight: "bold")[${headerRightText}]
     )
     #v(3pt)
     #line(length: 100%, stroke: 0.6pt + rgb("#CAD2C5"))
@@ -834,7 +870,7 @@ ${rightCode}
     #grid(
       columns: (1fr, auto),
       align: (left + horizon, right + horizon),
-      text(7.2pt, fill: rgb("#52796F"), font: "Helvetica Neue")[${headerDept} • SOLUCIONARIO • ${versionCodedRef}],
+      text(7.2pt, fill: rgb("#52796F"), font: "Helvetica Neue")[${footerLeftText}],
       box(
         fill: rgb("#EDF4F2"),
         radius: 3pt,
@@ -882,12 +918,12 @@ ${rightCode}
     columns: (1fr, auto),
     align: horizon,
     [
-      #text(size: ${(titulos * 0.78).toFixed(1)}pt, weight: "bold", fill: rgb("#2F3E46"))[${isVa ? "SOLUCIONARI OFICIAL" : "SOLUCIONARIO OFICIAL"}${versionName ? ` • ${versionName.toUpperCase()}` : ''}] \\
+      #text(size: ${(titulos * 0.78).toFixed(1)}pt, weight: "bold", fill: rgb("#2F3E46"))[${bannerTitleText}] \\
       #v(2pt)
-      #text(size: 9pt, fill: rgb("#52796F"))[${sanitizeTypst(data.curso)} • ${sanitizeTypst(data.subtitulo)} • #strong[${versionCodedRef}]]
+      #text(size: 9pt, fill: rgb("#52796F"))[${bannerSubText}]
     ],
     box(fill: rgb("#EFF6FF"), stroke: 0.8pt + rgb("#2563EB"), radius: 3pt, inset: (x: 8pt, y: 4pt))[
-      #text(size: 9pt, weight: "bold", fill: rgb("#1E40AF"))[${versionName ? `${versionName.toUpperCase()} • ${versionCodedRef}` : (isVa ? "CLAU DOCENT" : "CLAVE DOCENTE")}]
+      #text(size: 9pt, weight: "bold", fill: rgb("#1E40AF"))[${badgeText}]
     ]
   )
 ]
@@ -909,14 +945,15 @@ export function generateExamenConSolucionarioTypst(
   lang: Language,
   preguntasPorPagina?: string,
   fontSizes?: FontSizesConfig,
-  versionName?: string
+  versionName?: string,
+  hasMultipleVersions: boolean = false
 ): string {
   const isVa = lang === 'va';
   const data = parseExamenMarkdown(markdown);
   const distSetting = preguntasPorPagina?.trim() || data.preguntasPagina?.trim() || (tipo === 'test' ? '10, 10' : '10');
 
-  const examenTypst = generateExamenCompletoTypst(data, tipo, isVa, distSetting, fontSizes, versionName);
-  const solucionarioTypst = generateSolucionarioTypst(data, tipo, isVa, fontSizes, versionName);
+  const examenTypst = generateExamenCompletoTypst(data, tipo, isVa, distSetting, fontSizes, versionName, hasMultipleVersions);
+  const solucionarioTypst = generateSolucionarioTypst(data, tipo, isVa, fontSizes, versionName, hasMultipleVersions);
 
   // Extraer el cuerpo del solucionario (sin cabecera de documento duplicada)
   const solBody = solucionarioTypst

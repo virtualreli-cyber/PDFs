@@ -28,6 +28,8 @@ export interface ExamenVersion {
   id: string;
   nombre: string;
   markdown: string;
+  esUnica?: boolean;
+  esOtroIdioma?: boolean;
 }
 
 

@@ -39,6 +39,18 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
 
           <button
             type="button"
+            className="btn-pill"
+            onClick={() => onInsert(`\n# IDIOMA: ${isVa ? 'Valencià' : 'Castellano'}\n`)}
+            title={isVa
+              ? "Etiqueta d'idioma per al títol del fitxer: C = Castellà, V = Valencià, IN = Anglés, CH = Xinés"
+              : "Etiqueta de idioma para el título del archivo: C = Castellano, V = Valenciano, IN = Inglés, CH = Chino"
+            }
+          >
+            🌐 {isVa ? 'Idioma' : 'Idioma'}
+          </button>
+
+          <button
+            type="button"
             className="btn-pill pastel-lavender"
             onClick={() => onInsert(`\n> 📖 **[${isVa ? "CITA BÍBLICA / MAGISTERI" : "CITA BÍBLICA / MAGISTERIO"}]:** ${isVa ? "Títol" : "Título"}\n> «${isVa ? "Text de la cita bíblica o magisterial..." : "Texto de la cita bíblica o magisterial..."}»\n> — ${isVa ? "Autor / Document" : "Autor / Documento"}\n`)}
             title={isVa ? "Caixa Cita Bíblica / Magisteri" : "Caja Cita Bíblica / Magisterio"}
@@ -147,6 +159,18 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
 
           <button
             type="button"
+            className="btn-pill"
+            onClick={() => onInsert(`\n# IDIOMA: ${isVa ? 'Valencià' : 'Castellano'}\n`)}
+            title={isVa
+              ? "Etiqueta d'idioma per al títol del fitxer: C = Castellà, V = Valencià, IN = Anglés, CH = Xinés"
+              : "Etiqueta de idioma para el título del archivo: C = Castellano, V = Valenciano, IN = Inglés, CH = Chino"
+            }
+          >
+            🌐 {isVa ? 'Idioma' : 'Idioma'}
+          </button>
+
+          <button
+            type="button"
             className="btn-pill pastel-yellow"
             onClick={() => onInsert(`\n## ${isVa ? "PART I: PREGUNTES TIPUS TEST (5,0 punts)" : "PARTE I: PREGUNTAS TIPO TEST (5,0 puntos)"}\n${isVa ? "Instruccions específiques d'aquesta part de la prova..." : "Instrucciones específicas de esta parte del examen..."}\n`)}
             title={isVa ? "Afegir caixetí d'instruccions per a una part de l'examen" : "Añadir cajetín de instrucciones para una parte del examen"}
@@ -224,6 +248,18 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
           title={isVa ? "Nova activitat (1 pàgina independent)" : "Nueva actividad (1 página independiente)"}
         >
           🚀 {isVa ? 'Activitat' : 'Actividad'}
+        </button>
+
+        <button
+          type="button"
+          className="btn-pill"
+          onClick={() => onInsert(`\n# IDIOMA: ${isVa ? 'Valencià' : 'Castellano'}\n`)}
+          title={isVa
+            ? "Etiqueta d'idioma per al títol del fitxer: C = Castellà, V = Valencià, IN = Anglés, CH = Xinés"
+            : "Etiqueta de idioma para el título del archivo: C = Castellano, V = Valenciano, IN = Inglés, CH = Chino"
+          }
+        >
+          🌐 {isVa ? 'Idioma' : 'Idioma'}
         </button>
 
         <button
