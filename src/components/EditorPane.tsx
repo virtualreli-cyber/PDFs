@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
-import type { SectionType, Language, ApuntesMode, ExamenTipo, ExamenDocType, FontSizesConfig } from '../types';
+import type { SectionType, Language, ApuntesMode, ExamenTipo, ExamenDocType, FontSizesConfig, ExamenVersion } from '../types';
 import { QuickInsertBar } from './QuickInsertBar';
-import { RotateCcw, Trash2, Scissors, CheckCircle2, Type } from 'lucide-react';
+import { RotateCcw, Trash2, Scissors, CheckCircle2, Type, Shuffle, Plus } from 'lucide-react';
 
 interface EditorPaneProps {
   section: SectionType;
@@ -19,6 +19,14 @@ interface EditorPaneProps {
   onExamenDocTypeChange: (docType: ExamenDocType) => void;
   examQuestionsPerPage: string;
   onExamQuestionsPerPageChange: (val: string) => void;
+  // Versiones y aleatorización de Exámenes
+  examenVersions?: ExamenVersion[];
+  activeVersionId?: string;
+  onSelectVersion?: (id: string) => void;
+  onAddVersion?: () => void;
+  onDeleteVersion?: (id: string) => void;
+  onShufflePreguntas?: () => void;
+  onShuffleRespuestas?: () => void;
   // Ajustes tipográficos
   fontSizes: FontSizesConfig;
   onFontSizeNudge: (key: keyof FontSizesConfig, delta: number) => void;
@@ -43,6 +51,13 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
   onExamenDocTypeChange,
   examQuestionsPerPage,
   onExamQuestionsPerPageChange,
+  examenVersions,
+  activeVersionId,
+  onSelectVersion,
+  onAddVersion,
+  onDeleteVersion,
+  onShufflePreguntas,
+  onShuffleRespuestas,
   fontSizes,
   onFontSizeNudge,
   onFontSizeSet,
@@ -207,6 +222,29 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
                   />
                 </div>
               )}
+
+              {examenTipo !== 'desarrollo' && (
+                <div className="segmented-group">
+                  <button
+                    type="button"
+                    className="segmented-btn"
+                    onClick={onShufflePreguntas}
+                    title={isVa ? "Aleatoritzar l'ordre de les preguntes (actualitzant la numeració i el solucionari)" : "Aleatorizar el orden de las preguntas (actualizando numeración y solucionario)"}
+                  >
+                    <Shuffle className="w-3.5 h-3.5 text-blue-600" />
+                    <span>{isVa ? 'Preguntes' : 'Preguntas'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="segmented-btn"
+                    onClick={onShuffleRespuestas}
+                    title={isVa ? "Aleatoritzar l'ordre de les respostes dins de cada pregunta (mantenint a, b, c, d i actualitzant la lletra correcta)" : "Aleatorizar el orden de las respuestas dentro de cada pregunta (manteniendo a, b, c, d y actualizando la letra correcta)"}
+                  >
+                    <Shuffle className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{isVa ? 'Respostes' : 'Respuestas'}</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -237,6 +275,49 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Barra de versiones de examen */}
+      {section === 'examenes' && examenVersions && examenVersions.length > 0 && (
+        <div className="exam-versions-bar">
+          <span className="exam-version-label">{isVa ? 'Versions:' : 'Versiones:'}</span>
+          <div className="exam-versions-list">
+            {examenVersions.map((v) => (
+              <div key={v.id} className={`version-pill ${v.id === activeVersionId ? 'active' : ''}`}>
+                <button
+                  type="button"
+                  className="version-pill-btn"
+                  onClick={() => onSelectVersion?.(v.id)}
+                  title={isVa ? `Veure i editar ${v.nombre}` : `Ver y editar ${v.nombre}`}
+                >
+                  {v.nombre}
+                </button>
+                {examenVersions.length > 1 && (
+                  <button
+                    type="button"
+                    className="version-delete-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteVersion?.(v.id);
+                    }}
+                    title={isVa ? `Eliminar ${v.nombre}` : `Eliminar ${v.nombre}`}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              className="version-add-btn"
+              onClick={onAddVersion}
+              title={isVa ? "Crear una nova versió amb preguntes i respostes aleatoritzades" : "Crear una nueva versión con preguntas y respuestas aleatorizadas"}
+            >
+              <Plus className="w-3 h-3 inline-block mr-0.5" />
+              {isVa ? 'Nova versió' : 'Nueva versión'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Barra de inserción rápida */}
       <QuickInsertBar section={section} lang={lang} onInsert={handleInsert} />

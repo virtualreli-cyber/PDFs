@@ -228,6 +228,60 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
 
         <button
           type="button"
+          className="btn-pill pastel-sky"
+          onClick={() => onInsert(`\n| ${isVa ? "Concepte / Àmbit" : "Concepto / Ámbito"} | ${isVa ? "Característiques clau" : "Características clave"} | ${isVa ? "Aplicació pràctica" : "Aplicación práctica"} |\n| :--- | :--- | :--- |\n| ${isVa ? "Opció A" : "Opción A"} | [ ] ${isVa ? "Verificat" : "Verificado"} | [${isVa ? "LÍNIES: 2" : "LÍNEAS: 2"}] |\n| ${isVa ? "Opció B" : "Opción B"} | [ ] ${isVa ? "Verificat" : "Verificado"} | [${isVa ? "LÍNIES: 2" : "LÍNEAS: 2"}] |\n`)}
+          title={isVa ? "Inserir taula comparativa o de classificació amb pauta de línies i caselles" : "Insertar tabla comparativa o de clasificación con pauta de líneas y casillas"}
+        >
+          📊 {isVa ? 'Taula' : 'Tabla'}
+        </button>
+
+        <button
+          type="button"
+          className="btn-pill pastel-blue"
+          onClick={() => onInsert(`\n> 💡 **[${isVa ? "CAS PRÀCTIC" : "CASO PRÁCTICO"}]:** ${isVa ? "Títol de la situació real" : "Título de la situación real"}\n> ${isVa ? "Descripció de la vivència quotidiana o situació dilemàtica per a analitzar a classe..." : "Descripción de la vivencia cotidiana o situación dilemática para analizar en clase..."}\n`)}
+          title={isVa ? "Caixa de cas pràctic o vivència quotidiana" : "Caja de caso práctico o vivencia cotidiana"}
+        >
+          💡 {isVa ? 'Cas Pràctic' : 'Caso Práctico'}
+        </button>
+
+        <button
+          type="button"
+          className="btn-pill pastel-yellow"
+          onClick={() => onInsert(`\n> ⚖️ **[${isVa ? "DILEMA MORAL" : "DILEMA MORAL"}]:** ${isVa ? "Conflicte de valors" : "Conflicto de valores"}\n> ${isVa ? "Exposició del conflicte ètic entre dos decisions o valors cristians en tensió..." : "Exposición del conflicto ético entre dos decisiones o valores cristianos en tensión..."}\n`)}
+          title={isVa ? "Caixa de dilema moral o ètic" : "Caja de dilema moral o ético"}
+        >
+          ⚖️ {isVa ? 'Dilema Moral' : 'Dilema Moral'}
+        </button>
+
+        <button
+          type="button"
+          className="btn-pill pastel-lavender"
+          onClick={() => onInsert(`\n> 📚 **[${isVa ? "CONCEPTE CLAU" : "CONCEPTO CLAVE"}]:** ${isVa ? "Terme o ensenyament" : "Término o enseñanza"}\n> ${isVa ? "Definició sintètica i precisa del concepte doctrinal o ètic fonamental..." : "Definición sintética y precisa del concepto doctrinal o ético fundamental..."}\n`)}
+          title={isVa ? "Caixa de concepte clau o glossari" : "Caja de concepto clave o glosario"}
+        >
+          📚 {isVa ? 'Concepte' : 'Concepto'}
+        </button>
+
+        <button
+          type="button"
+          className="btn-pill pastel-rose"
+          onClick={() => onInsert(`\n### ${isVa ? "INSTRUCCIONS DE TREBALL" : "INSTRUCCIONES"}\n1. ${isVa ? "Llig atentament els documents i fonts de la sessió." : "Lee con atención los textos y fuentes de la sesión."}\n2. ${isVa ? "Respon a les qüestions de manera argumentada i personal." : "Responde a las cuestiones de manera argumentada y personal."}\n3. ${isVa ? "Redacta entre 4 i 6 línies per apartat amb rigor." : "Redacta entre 4 y 6 líneas por apartado con rigor."}\n`)}
+          title={isVa ? "Bloc d'instruccions estructurades de treball" : "Bloque de instrucciones estructuradas de trabajo"}
+        >
+          📋 {isVa ? 'Instruccions' : 'Instrucciones'}
+        </button>
+
+        <button
+          type="button"
+          className="btn-pill pastel-teal"
+          onClick={() => onInsert(`\n### ${isVa ? "QÜESTIONS A RESOLDRE" : "CUESTIONES A RESOLVER"}\n`)}
+          title={isVa ? "Separador de subsecció d'exercicis" : "Separador de subsección de ejercicios"}
+        >
+          🏷️ {isVa ? 'Subsecció' : 'Subsección'}
+        </button>
+
+        <button
+          type="button"
           className="btn-pill pastel-lavender"
           onClick={() => onInsert(`\n1. ${isVa ? "Enunciat de la qüestió pautada..." : "Enunciado de la cuestión pautada..."}\n[${isVa ? "LÍNIES: 4" : "LÍNEAS: 4"}]\n`)}
           title={isVa ? "Pregunta amb línies pautades d'escriptura" : "Pregunta con líneas pautadas de escritura"}
@@ -246,29 +300,11 @@ export const QuickInsertBar: React.FC<QuickInsertBarProps> = ({
 
         <button
           type="button"
-          className="btn-pill pastel-yellow"
-          onClick={() => onInsert(`\n- ${isVa ? "Tipus: Portfoli" : "Tipo: Portfolio"}\n`)}
-          title={isVa ? "Etiqueta Portfoli" : "Badge Portfolio"}
+          className="btn-pill"
+          onClick={() => onInsert('[ ] ')}
+          title={isVa ? "Inserir casella de verificació [ ]" : "Insertar casilla de verificación [ ]"}
         >
-          🏷️ {isVa ? 'Portfoli' : 'Portfolio'}
-        </button>
-
-        <button
-          type="button"
-          className="btn-pill pastel-yellow"
-          onClick={() => onInsert(`\n- ${isVa ? "Tipus: Projecte" : "Tipo: Proyecto"}\n`)}
-          title={isVa ? "Etiqueta Projecte" : "Badge Proyecto"}
-        >
-          🏷️ {isVa ? 'Projecte' : 'Proyecto'}
-        </button>
-
-        <button
-          type="button"
-          className="btn-pill pastel-yellow"
-          onClick={() => onInsert(`\n- ${isVa ? "Tipus: Repte" : "Tipo: Reto"}\n`)}
-          title={isVa ? "Etiqueta Repte" : "Badge Reto"}
-        >
-          🏷️ {isVa ? 'Repte' : 'Reto'}
+          ☑️ {isVa ? 'Casella [ ]' : 'Casilla [ ]'}
         </button>
 
         <button

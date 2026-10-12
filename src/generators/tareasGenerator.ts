@@ -1,14 +1,27 @@
 import type { Language, FontSizesConfig } from '../types';
 
+export type TareaElemento =
+  | { type: 'instrucciones'; texto: string }
+  | { type: 'caja'; titulo: string; cuerpo: string; icono?: string; estilo?: string }
+  | { type: 'pregunta'; num: number | string; texto: string; lineas: number }
+  | { type: 'subseccion'; titulo: string }
+  | { type: 'tabla'; headers: string[]; rows: string[][] }
+  | { type: 'lista'; items: string[] }
+  | { type: 'texto'; texto: string };
+
 export interface TareaActividad {
-  num: number;
+  num: number | string;
   titulo: string;
   sesion: string;
   tipo: string;
-  instrucciones?: string;
-  fuenteTitulo?: string;
-  fuenteTexto?: string;
-  preguntas: { num: number; texto: string; lineas: number }[];
+  elementos: TareaElemento[];
+}
+
+function sanitizeForTypst(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/"/g, '\\"')
+    .replace(/<(?=[0-9a-zA-Z_%])/g, '\\<');
 }
 
 export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
@@ -19,115 +32,286 @@ export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
 
   const lines = markdown.split('\n');
   let currentAct: TareaActividad | null = null;
-  let inFuente = false;
-  let fuenteLines: string[] = [];
-  let currentQ: { num: number; texto: string; lineas: number } | null = null;
+  let i = 0;
 
-  for (let i = 0; i < lines.length; i++) {
+  while (i < lines.length) {
     const raw = lines[i];
     const line = raw.trim();
-    if (!line) continue;
+
+    if (!line) {
+      i++;
+      continue;
+    }
 
     if (line.startsWith('# ASIGNATURA:')) {
       asignatura = line.substring(line.indexOf(':') + 1).trim();
+      i++;
       continue;
     }
     if (line.startsWith('# CURSO:') || line.startsWith('# CURS:')) {
       curso = line.substring(line.indexOf(':') + 1).trim();
+      i++;
       continue;
     }
     if (line.startsWith('# TÍTULO:') || line.startsWith('# TITULO:') || line.startsWith('# TÍTOL:')) {
       tituloTema = line.substring(line.indexOf(':') + 1).trim();
+      i++;
       continue;
     }
 
-    // Nueva actividad
-    const actMatch = line.match(/^##\s*(?:ACTIVIDAD|ACTIVITAT|SESIÓN|SESSIÓ)\s*(\d+)[:\.-]?\s*(.*)/i);
-    if (actMatch) {
-      if (currentAct && inFuente && fuenteLines.length > 0) {
-        currentAct.fuenteTexto = fuenteLines.join(' ');
-        inFuente = false;
-        fuenteLines = [];
-      }
+    // Detección de inicio de actividad / proyecto
+    const isActLine = (line.startsWith('## ') || line.startsWith('# ACTIVIDAD') || line.startsWith('# PROYECTO') || line.startsWith('# PORTFOLIO')) &&
+      !line.startsWith('# ASIGNATURA') && !line.startsWith('# CURSO') && !line.startsWith('# TÍTULO') && !line.startsWith('# TITULO');
+
+    if (isActLine) {
+      const actMatch = line.match(/^#{1,2}\s*(?:ACTIVIDAD|ACTIVITAT|SESIÓN|SESSIÓ|PROYECTO|PROJECTE|PORTFOLIO|EXPEDIENTES)(?:\s*DE\s*UNIDAD)?[:\.-]?\s*(?:(?:PORTFOLIO|PROYECTO|PROJECTE|SESIÓN|SESSIÓ|ACTIVIDAD|ACTIVITAT)\s*)?(\d+)?[:\s\.-]*(.*)/i);
+      const actNum = actMatch && actMatch[1] ? actMatch[1] : `${actividades.length + 1}`;
+      const actTitle = actMatch && actMatch[2]?.trim() ? actMatch[2].trim() : (isVa ? `Activitat ${actNum}` : `Actividad ${actNum}`);
       currentAct = {
-        num: parseInt(actMatch[1], 10),
-        titulo: actMatch[2].trim() || (isVa ? `Activitat ${actMatch[1]}` : `Actividad ${actMatch[1]}`),
-        sesion: actMatch[1],
-        tipo: isVa ? "Portfoli" : "Portfolio",
-        preguntas: []
+        num: actNum,
+        titulo: actTitle,
+        sesion: actNum,
+        tipo: line.toLowerCase().includes('proyecto') || line.toLowerCase().includes('projecte') ? (isVa ? "Projecte" : "Proyecto") : (isVa ? "Portfoli" : "Portfolio"),
+        elementos: []
       };
       actividades.push(currentAct);
-      currentQ = null;
+      i++;
       continue;
     }
 
     if (currentAct) {
-      if (line.startsWith('- Sesión:') || line.startsWith('- Sessió:')) {
-        currentAct.sesion = line.substring(line.indexOf(':') + 1).trim();
-        continue;
-      }
-      if (line.startsWith('- Tipo:') || line.startsWith('- Tipus:')) {
-        currentAct.tipo = line.substring(line.indexOf(':') + 1).trim();
-        continue;
-      }
-      if (line.startsWith('- Instrucciones:') || line.startsWith('- Instruccions:')) {
-        currentAct.instrucciones = line.substring(line.indexOf(':') + 1).trim();
+      // Salto de página entre bloques
+      if (line === '---' || line === '***') {
+        i++;
         continue;
       }
 
-      // Cajas de texto / Fuentes
-      if (line.startsWith('> 📜') || line.startsWith('> **[FUENTE') || line.startsWith('> **[FONT') || line.startsWith('> **[DOCUMENT') || line.startsWith('> 📖')) {
-        const headerMatch = line.match(/\*\*\[?(.*?)\]?\*\*:?\s*(.*)/);
-        if (headerMatch) {
-          currentAct.fuenteTitulo = headerMatch[2] || (isVa ? "DOCUMENT HISTÒRIC" : "DOCUMENTO HISTÓRICO");
-        }
-        inFuente = true;
-        fuenteLines = [];
+      // Metadatos de la actividad
+      if (/^-\s*\*{0,2}(?:Sesión|Sessió|Sesiones):\*{0,2}/i.test(line)) {
+        currentAct.sesion = line.substring(line.indexOf(':') + 1).replace(/\*{0,2}/g, '').trim();
+        i++;
         continue;
       }
-      if (inFuente) {
-        if (line.startsWith('>')) {
-          fuenteLines.push(line.replace(/^>\s*/, ''));
-          continue;
-        } else {
-          currentAct.fuenteTexto = fuenteLines.join(' ');
-          inFuente = false;
-        }
+      if (/^-\s*\*{0,2}(?:Tipo|Tipus|Tarea de|Modalidad|Modalitat):\*{0,2}/i.test(line)) {
+        const val = line.substring(line.indexOf(':') + 1).replace(/\*{0,2}/g, '').trim();
+        if (/proyecto|projecte/i.test(val)) currentAct.tipo = isVa ? "Projecte" : "Proyecto";
+        else if (/reto|repte/i.test(val)) currentAct.tipo = isVa ? "Repte" : "Reto";
+        else if (/situación|situació/i.test(val)) currentAct.tipo = isVa ? "Situació d'Aprenentatge" : "Situación de Aprendizaje";
+        else currentAct.tipo = isVa ? "Portfoli" : "Portfolio";
+        i++;
+        continue;
+      }
+      if (/^-\s*\*{0,2}(?:Unidad|Unitat|Criterios):\*{0,2}/i.test(line)) {
+        i++;
+        continue;
       }
 
-      // Preguntas
+      // Instrucciones en formato metadato: "- Instrucciones: ..."
+      if (/^-\s*\*{0,2}(?:Instrucciones|Instruccions):\*{0,2}/i.test(line)) {
+        const text = line.substring(line.indexOf(':') + 1).replace(/\*{0,2}/g, '').trim();
+        currentAct.elementos.push({ type: 'instrucciones', texto: text });
+        i++;
+        continue;
+      }
+
+      // Bloque explícito de instrucciones: "### INSTRUCCIONES" / "### INSTRUCCIONS"
+      if (/^#{3,4}\s*(?:INSTRUCCIONES|INSTRUCCIONS)\b/i.test(line)) {
+        i++;
+        const instLines: string[] = [];
+        while (i < lines.length) {
+          const l = lines[i].trim();
+          if (!l) { i++; continue; }
+          if (l.startsWith('###') || l.startsWith('##') || l.startsWith('#') || l === '---' || l.startsWith('>') || l.startsWith('|')) break;
+          instLines.push(l);
+          i++;
+        }
+        if (instLines.length > 0) {
+          currentAct.elementos.push({ type: 'instrucciones', texto: instLines.join(' \n') });
+        }
+        continue;
+      }
+
+      // Subsecciones / títulos intermedios: "### CUESTIONES A RESOLVER", "#### 1. Clasificación...", "### CASO PRÁCTICO"
+      if (line.startsWith('### ') || line.startsWith('#### ')) {
+        const titleText = line.replace(/^#+\s*/, '').trim();
+        // Si el título es solo "CUESTIONES A RESOLVER", es un separador visual
+        currentAct.elementos.push({ type: 'subseccion', titulo: titleText });
+        i++;
+        continue;
+      }
+
+      // Bloques de Citas / Cajas / Fuentes / Dilemas: líneas que empiezan por '>'
+      if (line.startsWith('>')) {
+        const cajaLines: string[] = [];
+        while (i < lines.length && lines[i].trim().startsWith('>')) {
+          cajaLines.push(lines[i].trim().replace(/^>\s*/, ''));
+          i++;
+        }
+
+        if (cajaLines.length > 0) {
+          const first = cajaLines[0];
+          let titulo = isVa ? "DOCUMENT D'ANÀLISI" : "DOCUMENTO DE ANÁLISIS";
+          let icono = "📜";
+          let estilo = "fuente";
+
+          const tagMatch = first.match(/^(?:([\p{Emoji}\u2000-\u3300])\s*)?\*{0,2}\[?(.*?)\]?\*{0,2}:?\s*(.*)/u);
+          if (tagMatch && (first.includes('[') || first.includes('**'))) {
+            if (tagMatch[1]) icono = tagMatch[1];
+            const tagType = tagMatch[2]?.toUpperCase() || "";
+            titulo = tagMatch[3]?.trim() || tagType || (isVa ? "DOCUMENT" : "DOCUMENTO");
+
+            if (tagType.includes('DILEMA')) {
+              icono = icono || "⚖️";
+              estilo = "dilema";
+            } else if (tagType.includes('CASO') || tagType.includes('CAS')) {
+              icono = icono || "💡";
+              estilo = "caso";
+            } else if (tagType.includes('CONCEPTO') || tagType.includes('CONCEPTE') || tagType.includes('GLOSARIO') || tagType.includes('GLOSSARI')) {
+              icono = icono || "📚";
+              estilo = "concepto";
+            } else if (tagType.includes('PRINCIPIO') || tagType.includes('PRINCIPI')) {
+              icono = icono || "⚖️";
+              estilo = "dilema";
+            }
+          } else if (first.startsWith('«') || first.startsWith('"')) {
+            titulo = isVa ? "TEXT PER A COMENTAR" : "TEXTO PARA COMENTAR";
+            icono = "📜";
+            estilo = "fuente";
+          }
+
+          const cuerpoLines = tagMatch && (first.includes('[') || first.includes('**')) && tagMatch[3] ? cajaLines.slice(1) : cajaLines;
+          const cuerpo = cuerpoLines.join(' ');
+          currentAct.elementos.push({ type: 'caja', titulo, cuerpo: cuerpo || first, icono, estilo });
+        }
+        continue;
+      }
+
+      // Tablas Markdown: líneas que empiezan por '|'
+      if (line.startsWith('|')) {
+        const tableLines: string[] = [];
+        while (i < lines.length && lines[i].trim().startsWith('|')) {
+          tableLines.push(lines[i].trim());
+          i++;
+        }
+
+        if (tableLines.length >= 2) {
+          const parseRow = (rowStr: string) =>
+            rowStr.split('|').map(c => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+
+          const headers = parseRow(tableLines[0]);
+          const dataRows: string[][] = [];
+          for (let r = 1; r < tableLines.length; r++) {
+            if (/^\|(?:\s*:?-+:?\s*\|)+$/.test(tableLines[r])) continue;
+            dataRows.push(parseRow(tableLines[r]));
+          }
+
+          if (headers.length > 0 && dataRows.length > 0) {
+            currentAct.elementos.push({ type: 'tabla', headers, rows: dataRows });
+          }
+        }
+        continue;
+      }
+
+      // Pregunta numerada: "1. Enunciado..."
       const qMatch = line.match(/^(\d+)[\.\)]\s*(.+)/);
       if (qMatch) {
-        currentQ = {
-          num: parseInt(qMatch[1], 10),
-          texto: qMatch[2].trim(),
-          lineas: 4
-        };
-        currentAct.preguntas.push(currentQ);
+        const qNum = parseInt(qMatch[1], 10);
+        let qText = qMatch[2].trim();
+        let qLines = 4;
+
+        // Comprobar si hay pauta en la misma línea o en la siguiente
+        const inlineLineMatch = qText.match(/\[(?:LÍNEAS|LINEAS|LÍNIES):\s*(\d+)\]/i);
+        if (inlineLineMatch) {
+          qLines = parseInt(inlineLineMatch[1], 10);
+          qText = qText.replace(/\[(?:LÍNEAS|LINEAS|LÍNIES):\s*(\d+)\]/i, '').trim();
+        } else if (i + 1 < lines.length) {
+          const nextL = lines[i + 1].trim();
+          const nextLineMatch = nextL.match(/^\[(?:LÍNEAS|LINEAS|LÍNIES):\s*(\d+)\]/i);
+          if (nextLineMatch) {
+            qLines = parseInt(nextLineMatch[1], 10);
+            i++;
+          }
+        }
+
+        currentAct.elementos.push({ type: 'pregunta', num: qNum, texto: qText, lineas: qLines });
+        i++;
         continue;
       }
 
-      // Líneas para la pregunta actual
-      const linesMatch = line.match(/\[(?:LÍNEAS|LINEAS|LÍNIES):\s*(\d+)\]/i);
-      if (linesMatch && currentQ) {
-        currentQ.lineas = parseInt(linesMatch[1], 10);
+      // Listas de viñetas: "* **Situación A:** ..." o "- Caso 1: ..."
+      if (line.startsWith('* ') || line.startsWith('- ')) {
+        const listItems: string[] = [];
+        while (i < lines.length && (lines[i].trim().startsWith('* ') || lines[i].trim().startsWith('- '))) {
+          const it = lines[i].trim().replace(/^[\*\-]\s*/, '');
+          if (!it.match(/^(?:Sesión|Sessió|Tipo|Tipus|Unidad|Unitat):/i)) {
+            listItems.push(it);
+          }
+          i++;
+        }
+        if (listItems.length > 0) {
+          currentAct.elementos.push({ type: 'lista', items: listItems });
+        }
         continue;
       }
+
+      // Pauta de líneas suelta: "[LÍNEAS: 4]"
+      const standaloneLineMatch = line.match(/^\[(?:LÍNEAS|LINEAS|LÍNIES):\s*(\d+)\]/i);
+      if (standaloneLineMatch) {
+        const lastEl = currentAct.elementos[currentAct.elementos.length - 1];
+        if (lastEl && lastEl.type === 'pregunta') {
+          lastEl.lineas = parseInt(standaloneLineMatch[1], 10);
+        }
+        i++;
+        continue;
+      }
+
+      // Párrafo de texto ordinario
+      currentAct.elementos.push({ type: 'texto', texto: line });
+      i++;
+      continue;
     }
-  }
 
-  if (currentAct && inFuente && fuenteLines.length > 0) {
-    currentAct.fuenteTexto = fuenteLines.join(' ');
+    i++;
   }
 
   return { curso, asignatura, tituloTema, actividades };
 }
 
-function sanitizeForTypst(text: string): string {
-  if (!text) return "";
-  return text
-    .replace(/"/g, '\\"')
-    .replace(/<(?=[0-9a-zA-Z_%])/g, '\\<');
+function renderTablaTypst(headers: string[], rows: string[][]): string {
+  const colCount = Math.max(headers.length, ...rows.map(r => r.length));
+  let colsStr = "1fr, ".repeat(colCount).slice(0, -2);
+  if (colCount === 3) colsStr = "2.6fr, 1.15fr, 2.25fr";
+  else if (colCount === 4) colsStr = "1.5fr, 1.2fr, 1.2fr, 1.2fr";
+  else if (colCount === 2) colsStr = "1.2fr, 2fr";
+
+  const headerCells = headers.map(h => `[#text(size: 9pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#2F3E46"))[${sanitizeForTypst(h)}]]`).join(', ');
+
+  const rowCells: string[] = [];
+  for (const row of rows) {
+    for (let c = 0; c < colCount; c++) {
+      const cellText = row[c] || "";
+      const lineMatch = cellText.match(/\[(?:LÍNEAS|LINEAS|LÍNIES):\s*(\d+)\]/i);
+      if (lineMatch) {
+        rowCells.push(`pauta-celda(lineas: ${lineMatch[1]})`);
+      } else if (cellText.includes('[ ]') || cellText.includes('[x]') || cellText.includes('[X]')) {
+        const cleanBoxes = cellText
+          .replace(/\[\s*\]/g, '#box(stroke: 0.6pt + rgb("#64748B"), width: 8.5pt, height: 8.5pt, radius: 1.5pt) ')
+          .replace(/\[[xX]\]/g, '#box(fill: rgb("#52796F"), stroke: 0.6pt + rgb("#2F3E46"), width: 8.5pt, height: 8.5pt, radius: 1.5pt) ');
+        rowCells.push(`[#text(size: 8.5pt)[${cleanBoxes}]]`);
+      } else {
+        rowCells.push(`[#text(size: 8.8pt)[${sanitizeForTypst(cellText)}]]`);
+      }
+    }
+  }
+
+  return `#table(
+  columns: (${colsStr}),
+  stroke: 0.5pt + rgb("#CAD2C5"),
+  fill: (x, y) => if y == 0 { rgb("#EDF4F2") } else if calc.even(y) { rgb("#FAFBFB") } else { none },
+  inset: (x: 5pt, y: 5pt),
+  table.header(${headerCells}),
+  ${rowCells.join(',\n  ')}
+)`;
 }
 
 export function generateTareasTypst(
@@ -147,30 +331,34 @@ export function generateTareasTypst(
   const deptText = isVa ? "Departament de Religió Catòlica" : "Departamento de Religión Católica";
 
   const actividadesPagesTypst = data.actividades.map((act) => {
-    const preguntasTypst = act.preguntas.map(q => `
-  #seccion-pregunta("${q.num}", [${sanitizeForTypst(q.texto)}])
-  #v(2.5pt)
-  #pauta-lineas(${q.lineas || 4})
-`).join('\n');
+    const renderedElements: string[] = [];
 
-    const fuenteBlock = act.fuenteTexto ? `
-  #caja-instrucciones(
-    titulo: "${sanitizeForTypst(act.fuenteTitulo || (isVa ? "DOCUMENT HISTÒRIC" : "DOCUMENTO HISTÓRICO"))}",
-    cuerpo: [${sanitizeForTypst(act.fuenteTexto)}]
-  )
-  #v(5pt)
-` : '';
-
-    const instrBlock = act.instrucciones ? `
-  #text(size: 9.8pt, fill: rgb("#475569"), style: "italic")[${sanitizeForTypst(act.instrucciones)}]
-  #v(3pt)
-` : '';
+    // Renderizado estrictamente secuencial de los elementos según el orden en el texto
+    for (const el of act.elementos) {
+      if (el.type === 'instrucciones') {
+        renderedElements.push(`  #caja-instrucciones[${sanitizeForTypst(el.texto)}]\n  #v(4pt)`);
+      } else if (el.type === 'caja') {
+        renderedElements.push(`  #caja-texto("${sanitizeForTypst(el.titulo)}", [${sanitizeForTypst(el.cuerpo)}], icono: "${el.icono || "📜"}", estilo: "${el.estilo || "fuente"}")\n  #v(4pt)`);
+      } else if (el.type === 'subseccion') {
+        renderedElements.push(`  #subseccion-titulo("${sanitizeForTypst(el.titulo)}")\n  #v(3pt)`);
+      } else if (el.type === 'pregunta') {
+        renderedElements.push(`  #seccion-pregunta("${el.num}", [${sanitizeForTypst(el.texto)}])\n  #v(2.5pt)\n  #pauta-lineas(${el.lineas || 4})\n  #v(4pt)`);
+      } else if (el.type === 'tabla') {
+        renderedElements.push(`  ${renderTablaTypst(el.headers, el.rows)}\n  #v(4pt)`);
+      } else if (el.type === 'lista') {
+        const itemsCode = el.items.map(it => `    #list.item[#text(size: ${(contenido * 0.90).toFixed(1)}pt)[${sanitizeForTypst(it)}]]`).join('\n');
+        renderedElements.push(`  #block(spacing: 3pt)[\n${itemsCode}\n  ]\n  #v(4pt)`);
+      } else if (el.type === 'texto') {
+        renderedElements.push(`  #text(size: ${(contenido * 0.95).toFixed(1)}pt)[${sanitizeForTypst(el.texto)}]\n  #v(3pt)`);
+      }
+    }
 
     return `
 // PÁGINA ACTIVIDAD ${act.num}
 #franja-alumno()
 #banner-actividad("${act.num}", "${sanitizeForTypst(act.titulo)}", sesion: "${sanitizeForTypst(act.sesion)}", tipo: "${sanitizeForTypst(act.tipo)}")
-${instrBlock}${fuenteBlock}${preguntasTypst}
+#v(3pt)
+${renderedElements.join('\n')}
 #pagebreak()
 `;
   }).join('\n');
@@ -286,6 +474,13 @@ ${instrBlock}${fuenteBlock}${preguntasTypst}
   ]
 ]
 
+#let pauta-celda(lineas: 2, espaciado: 10.5pt) = [
+  #for _ in range(lineas) [
+    #v(espaciado)
+    #line(length: 100%, stroke: (paint: rgb("#CBD5E1"), thickness: 0.45pt, dash: "dotted"))
+  ]
+]
+
 #let seccion-pregunta(num, enunciado) = block(breakable: false, spacing: 8pt)[
   #v(4pt)
   #grid(
@@ -298,7 +493,13 @@ ${instrBlock}${fuenteBlock}${preguntasTypst}
   )
 ]
 
-#let caja-instrucciones(titulo: "${isVa ? "INSTRUCCIONS" : "INSTRUCCIONES"}", cuerpo: []) = block(breakable: false, width: 100%, spacing: 8pt)[
+#let subseccion-titulo(titulo) = block(breakable: false, spacing: 6pt)[
+  #v(5pt)
+  #text(size: 11pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#52796F"))[▶ #titulo]
+  #v(2pt)
+]
+
+#let caja-instrucciones(cuerpo) = block(breakable: false, width: 100%, spacing: 8pt)[
   #rect(
     width: 100%,
     fill: rgb("#F8FAFC"),
@@ -306,11 +507,49 @@ ${instrBlock}${fuenteBlock}${preguntasTypst}
     radius: (right: 4pt),
     inset: (x: 10pt, y: 7pt)
   )[
-    #text(size: 8.5pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#475569"))[#titulo]\\
+    #text(size: 8.5pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#475569"))[📋 ${isVa ? "INSTRUCCIONS DE TREBALL:" : "INSTRUCCIONES DE TRABAJO:"}]\\
     #v(2pt)
     #text(size: ${(contenido * 0.91).toFixed(1)}pt, font: "Georgia", style: "italic", fill: rgb("#334155"))[#cuerpo]
   ]
 ]
+
+#let caja-texto(titulo, cuerpo, icono: "📜", estilo: "fuente") = {
+  let bg = rgb("#F8FAFC")
+  let stroke-color = rgb("#52796F")
+  let border-color = rgb("#CAD2C5")
+  let text-color = rgb("#2F3E46")
+  
+  if estilo == "dilema" {
+    bg = rgb("#FEF3C7")
+    stroke-color = rgb("#D97706")
+    border-color = rgb("#FDE68A")
+    text-color = rgb("#92400E")
+  } else if estilo == "caso" {
+    bg = rgb("#EFF6FF")
+    stroke-color = rgb("#2563EB")
+    border-color = rgb("#BFDBFE")
+    text-color = rgb("#1E40AF")
+  } else if estilo == "concepto" {
+    bg = rgb("#FAF5FF")
+    stroke-color = rgb("#7C3AED")
+    border-color = rgb("#DDD6FE")
+    text-color = rgb("#6D28D9")
+  }
+  
+  block(breakable: false, width: 100%, spacing: 8pt)[
+    #rect(
+      width: 100%,
+      fill: bg,
+      stroke: (left: 3.5pt + stroke-color, rest: 0.5pt + border-color),
+      radius: (right: 4pt),
+      inset: (x: 10pt, y: 7pt)
+    )[
+      #text(size: 9.5pt, font: "Helvetica Neue", weight: "bold", fill: text-color)[#icono #upper(titulo)] \\
+      #v(3pt)
+      #text(size: ${(contenido * 0.93).toFixed(1)}pt, font: "Georgia", style: "italic", fill: rgb("#1F2937"))[#cuerpo]
+    ]
+  ]
+}
 
 ${actividadesPagesTypst}
 

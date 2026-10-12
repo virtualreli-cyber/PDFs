@@ -24,4 +24,10 @@ export interface FontSizesConfig {
   instrucciones?: number;
 }
 
+export interface ExamenVersion {
+  id: string;
+  nombre: string;
+  markdown: string;
+}
+
 

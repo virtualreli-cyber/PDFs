@@ -8,6 +8,8 @@ import {
   RotateCcw,
   CheckCircle2,
   X,
+  Printer,
+  Layers,
 } from 'lucide-react';
 
 interface PreviewPaneProps {
@@ -22,6 +24,9 @@ interface PreviewPaneProps {
   hasPendingChanges: boolean;
   onRecompile: () => void;
   onDownloadSoluciones?: () => Promise<void>;
+  onPrint?: () => void;
+  hasMultipleVersions?: boolean;
+  onDownloadAllVersions?: () => Promise<void>;
 }
 
 export const PreviewPane: React.FC<PreviewPaneProps> = ({
@@ -36,6 +41,9 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
   hasPendingChanges,
   onRecompile,
   onDownloadSoluciones,
+  onPrint,
+  hasMultipleVersions,
+  onDownloadAllVersions,
 }) => {
   const isVa = lang === 'va';
   const { isCompiling, pdfBlobUrl, pdfBytes, error } = compilationState;
@@ -115,6 +123,23 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
             </span>
           </button>
 
+          {/* Botón Imprimir */}
+          {onPrint && (
+            <button
+              type="button"
+              className="action-btn-small"
+              onClick={onPrint}
+              disabled={!pdfBlobUrl || isCompiling}
+              title={section === 'examenes'
+                ? (isVa ? "Imprimir versió (examen + solucionari oficial adaptat)" : "Imprimir versión (examen + solucionario oficial adaptado)")
+                : (isVa ? "Imprimir document" : "Imprimir documento")
+              }
+            >
+              <Printer className="w-3.5 h-3.5 text-slate-700" />
+              <span>{isVa ? 'Imprimir' : 'Imprimir'}</span>
+            </button>
+          )}
+
           {/* Botón Descargar */}
           <button
             type="button"
@@ -190,7 +215,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
                 : 'Puedes descargar únicamente el examen oficial para el alumnado o generar y descargar simultáneamente las soluciones oficiales docentes en un archivo PDF independiente.'}
             </p>
 
-            <div className="modal-actions">
+            <div className="modal-actions" style={{ flexWrap: 'wrap', gap: '8px' }}>
               <button
                 type="button"
                 className="modal-btn-secondary"
@@ -218,6 +243,22 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
                 <CheckCircle2 className="w-4 h-4" />
                 <span>{isVa ? 'Examen + Solucions' : 'Examen + Soluciones'}</span>
               </button>
+
+              {hasMultipleVersions && onDownloadAllVersions && (
+                <button
+                  type="button"
+                  className="modal-btn-primary"
+                  style={{ background: '#354F52', borderColor: '#2F3E46' }}
+                  onClick={async () => {
+                    setShowDownloadModal(false);
+                    await onDownloadAllVersions();
+                  }}
+                  title={isVa ? "Descarregar totes les versions generades amb els seus respectius solucionaris" : "Descargar todas las versiones generadas con sus respectivos solucionarios"}
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>{isVa ? 'Totes les versions + Solucions' : 'Todas las versiones + Soluciones'}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
