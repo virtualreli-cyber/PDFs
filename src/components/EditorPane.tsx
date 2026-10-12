@@ -37,6 +37,7 @@ interface EditorPaneProps {
   // Acciones generales
   onLoadSample: () => void;
   onClear: () => void;
+  onSwitchSection?: (section: SectionType) => void;
 }
 
 export const EditorPane: React.FC<EditorPaneProps> = ({
@@ -68,6 +69,7 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
   onResetFontSizes,
   onLoadSample,
   onClear,
+  onSwitchSection,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isVa = lang === 'va';
@@ -549,6 +551,44 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Aviso contextual si se detecta un dossier de actividades pegado en la sección de Apuntes */}
+      {section === 'apuntes' && /^\s*#\s*(?:ACTIVIDAD|ACTIVITAT|PROYECTO|PROJECTE|TAREA|TASCA)\b/im.test(markdown) && (
+        <div style={{
+          backgroundColor: '#EFF6FF',
+          border: '1px solid #BFDBFE',
+          borderRadius: '4px',
+          padding: '4px 10px',
+          margin: '4px 8px 0',
+          fontSize: '11px',
+          color: '#1E40AF',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '8px'
+        }}>
+          <span>💡 {isVa ? "Detectat dossier d'activitats:" : "Detectado dossier de actividades/tareas:"} {isVa ? "Per al format oficial de dossier (1 pàg/activitat + rúbrica), fes clic en Tareas." : "Para maquetar con formato oficial de cuaderno (1 pág/actividad + rúbrica), usa la pestaña Tareas."}</span>
+          {onSwitchSection && (
+            <button
+              type="button"
+              onClick={() => onSwitchSection('tareas')}
+              style={{
+                background: '#2563EB',
+                color: 'white',
+                border: 'none',
+                borderRadius: '3px',
+                padding: '2px 8px',
+                fontSize: '10.5px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {isVa ? "Canviar a Tasques →" : "Mover a Tareas →"}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Área del editor */}
       <div className="editor-textarea-wrapper">

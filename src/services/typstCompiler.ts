@@ -48,7 +48,22 @@ export async function compileTypstToPdf(sourceCode: string): Promise<Uint8Array>
 
   const diagnostics = response?.diagnostics;
   if (diagnostics && diagnostics.length > 0) {
-    const errorMessages = diagnostics.map((d: any) => typeof d === 'string' ? d : d.message || JSON.stringify(d)).join('\n');
+    console.error('Typst compile diagnostics:', diagnostics);
+    const lines = sourceCode.split('\n');
+    diagnostics.forEach((d: any) => {
+      if (d.range) {
+        const m = String(d.range).match(/^(\d+):/);
+        if (m) {
+          const lNum = parseInt(m[1], 10);
+          console.error(`Typst error line ${lNum}:`, lines[lNum - 1]);
+        }
+      }
+    });
+    const errorMessages = diagnostics.map((d: any) => {
+      if (typeof d === 'string') return d;
+      const range = d.range ? `[Línea/Col ${d.range}] ` : '';
+      return `${range}${d.message || JSON.stringify(d)}`;
+    }).join('\n');
     throw new Error(`Error en el código Typst:\n${errorMessages}`);
   }
 

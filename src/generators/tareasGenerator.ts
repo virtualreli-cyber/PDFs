@@ -14,6 +14,7 @@ export interface TareaActividad {
   titulo: string;
   sesion: string;
   tipo: string;
+  unidad?: string;
   elementos: TareaElemento[];
 }
 
@@ -24,10 +25,101 @@ function sanitizeForTypst(text: string): string {
     .replace(/<(?=[0-9a-zA-Z_%])/g, '\\<');
 }
 
-export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
+export interface TareasMetadata {
+  curso: string;
+  asignatura: string;
+  tituloTema: string;
+  subtituloTema: string;
+  temaNumero: string;
+}
+
+export function extractTareasMetadata(markdown: string, isVa: boolean = false): TareasMetadata {
   let curso = isVa ? "2n ESO" : "2º ESO";
   let asignatura = isVa ? "RELIGIÓ CATÒLICA" : "RELIGIÓN CATÓLICA";
-  let tituloTema = isVa ? "HISTÒRIA DE L'ESGLÉSIA PRIMITIVA: MISSIÓ I TESTIMONI" : "HISTORIA DE LA IGLESIA PRIMITIVA: MISIÓN Y TESTIMONIO";
+  let unidadDidactica = "";
+  let tituloTema = "";
+  let temaNumero = "";
+  let subtituloTema = "";
+  let inActUnidad = "";
+
+  const lines = markdown.split('\n');
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    // Asignatura
+    const asigMatch = line.match(/^#{1,3}\s*(?:ASIGNATURA|ASSIGNATURA|MATERIA|MATÈRIA):\s*(.*)/i);
+    if (asigMatch && asigMatch[1].trim()) {
+      asignatura = asigMatch[1].trim();
+      continue;
+    }
+
+    // Curso
+    const cursMatch = line.match(/^#{1,3}\s*(?:CURSO|CURS):\s*(.*)/i);
+    if (cursMatch && cursMatch[1].trim()) {
+      const rawCurso = cursMatch[1].trim();
+      const parts = rawCurso.split(/[•·\-]/);
+      curso = parts[0].trim();
+      if (parts.length > 1 && /religi/i.test(parts[1])) {
+        asignatura = parts[1].trim();
+      }
+      continue;
+    }
+
+    // Unidad Didáctica (prioridad principal)
+    const udMatch = line.match(/^#{1,3}\s*(?:UNIDAD DID[AÁ]CTICA|UNITAT DID[AÀ]CTICA|UNIDAD|UNITAT|UD|UDI|UDII)(?:\s*\d+)?[:\.-]?\s*(.*)/i);
+    if (udMatch && udMatch[1].trim()) {
+      unidadDidactica = udMatch[1].trim();
+      continue;
+    }
+
+    // Título explícito
+    const titMatch = line.match(/^#{1,3}\s*(?:TÍTULO|TITULO|TÍTOL)(?:\s*DEL\s*TEMA)?[:\.-]?\s*(.*)/i);
+    if (titMatch && titMatch[1].trim()) {
+      tituloTema = titMatch[1].trim();
+      continue;
+    }
+
+    // Subtítulo
+    const subMatch = line.match(/^#{1,3}\s*(?:SUBTÍTULO|SUBTITULO|SUBTÍTOL)[:\.-]?\s*(.*)/i);
+    if (subMatch && subMatch[1].trim()) {
+      subtituloTema = subMatch[1].trim();
+      continue;
+    }
+
+    // Tema
+    const temaMatch = line.match(/^#{1,3}\s*(?:TEMA|TEMARI)(?:\s*\d+)?[:\.-]?\s*(.*)/i);
+    if (temaMatch && temaMatch[1].trim()) {
+      const val = temaMatch[1].trim();
+      if (/^(?:Tema\s*)?\d+[a-zA-Z]?$/i.test(val)) {
+        temaNumero = val;
+      } else {
+        const cleanVal = val.replace(/^(?:Tema\s*)?\d*[:\.-]?\s*/i, '').trim();
+        if (cleanVal) {
+          tituloTema = cleanVal;
+        }
+      }
+      continue;
+    }
+
+    // Unidad dentro de actividad (- **Unidad:** ...)
+    const actUnitMatch = line.match(/^-\s*\*{0,2}(?:Unidad|Unitat|Tema):\*{0,2}\s*(.*)/i);
+    if (actUnitMatch && actUnitMatch[1].trim() && !inActUnidad) {
+      inActUnidad = actUnitMatch[1].replace(/\*{0,2}/g, '').trim();
+      continue;
+    }
+  }
+
+  const effectiveTitle = unidadDidactica || tituloTema || inActUnidad || (isVa ? "HISTÒRIA DE L'ESGLÉSIA PRIMITIVA: MISSIÓ I TESTIMONI" : "HISTORIA DE LA IGLESIA PRIMITIVA: MISIÓN Y TESTIMONIO");
+
+  return { curso, asignatura, tituloTema: effectiveTitle, subtituloTema, temaNumero };
+}
+
+export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
+  const meta = extractTareasMetadata(markdown, isVa);
+  let curso = meta.curso;
+  let asignatura = meta.asignatura;
+  let tituloTema = meta.tituloTema;
   const actividades: TareaActividad[] = [];
 
   const lines = markdown.split('\n');
@@ -43,32 +135,17 @@ export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
       continue;
     }
 
-    if (line.startsWith('# ASIGNATURA:')) {
-      asignatura = line.substring(line.indexOf(':') + 1).trim();
-      i++;
-      continue;
-    }
-    if (line.startsWith('# CURSO:') || line.startsWith('# CURS:')) {
-      curso = line.substring(line.indexOf(':') + 1).trim();
-      i++;
-      continue;
-    }
-    if (line.startsWith('# TÍTULO:') || line.startsWith('# TITULO:') || line.startsWith('# TÍTOL:')) {
-      tituloTema = line.substring(line.indexOf(':') + 1).trim();
-      i++;
-      continue;
-    }
-    if (line.startsWith('# IDIOMA:') || line.startsWith('# LLENGUA:') || line.startsWith('# LENGUA:') || line.startsWith('# LANG:') || line.startsWith('# LANGUAGE:')) {
+    // 1. Ignorar metadatos globales ya procesados en extractTareasMetadata
+    if (line.match(/^#{1,3}\s*(?:ASIGNATURA|ASSIGNATURA|MATERIA|MATÈRIA|CURSO|CURS|TÍTULO|TITULO|TÍTOL|UNIDAD DID[AÁ]CTICA|UNITAT DID[AÀ]CTICA|UNIDAD|UNITAT|UD|UDI|UDII|TEMA|TEMARI|SUBTÍTULO|SUBTITULO|SUBTÍTOL|IDIOMA|LLENGUA|LENGUA|LANG|LANGUAGE)[:\.-]?/i)) {
       i++;
       continue;
     }
 
     // Detección de inicio de actividad / proyecto
-    const isActLine = (line.startsWith('## ') || line.startsWith('# ACTIVIDAD') || line.startsWith('# PROYECTO') || line.startsWith('# PORTFOLIO')) &&
-      !line.startsWith('# ASIGNATURA') && !line.startsWith('# CURSO') && !line.startsWith('# TÍTULO') && !line.startsWith('# TITULO');
+    const isActLine = (line.startsWith('## ') || line.startsWith('# ACTIVIDAD') || line.startsWith('# ACTIVITAT') || line.startsWith('# PROYECTO') || line.startsWith('# PROJECTE') || line.startsWith('# PORTFOLIO') || line.startsWith('# TAREA') || line.startsWith('# TASCA'));
 
     if (isActLine) {
-      const actMatch = line.match(/^#{1,2}\s*(?:ACTIVIDAD|ACTIVITAT|SESIÓN|SESSIÓ|PROYECTO|PROJECTE|PORTFOLIO|EXPEDIENTES)(?:\s*DE\s*UNIDAD)?[:\.-]?\s*(?:(?:PORTFOLIO|PROYECTO|PROJECTE|SESIÓN|SESSIÓ|ACTIVIDAD|ACTIVITAT)\s*)?(\d+)?[:\s\.-]*(.*)/i);
+      const actMatch = line.match(/^#{1,2}\s*(?:ACTIVIDAD|ACTIVITAT|SESIÓN|SESSIÓ|PROYECTO|PROJECTE|PORTFOLIO|TAREA|TASCA|EXPEDIENTES)?(?:\s*DE\s*UNIDAD)?[:\.-]?\s*(?:(?:PORTFOLIO|PROYECTO|PROJECTE|SESIÓN|SESSIÓ|ACTIVIDAD|ACTIVITAT|TAREA|TASCA)\s*)?(\d+)?[:\s\.-]*(.*)/i);
       const actNum = actMatch && actMatch[1] ? actMatch[1] : `${actividades.length + 1}`;
       const actTitle = actMatch && actMatch[2]?.trim() ? actMatch[2].trim() : (isVa ? `Activitat ${actNum}` : `Actividad ${actNum}`);
       currentAct = {
@@ -76,6 +153,7 @@ export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
         titulo: actTitle,
         sesion: actNum,
         tipo: line.toLowerCase().includes('proyecto') || line.toLowerCase().includes('projecte') ? (isVa ? "Projecte" : "Proyecto") : (isVa ? "Portfoli" : "Portfolio"),
+        unidad: tituloTema,
         elementos: []
       };
       actividades.push(currentAct);
@@ -105,7 +183,16 @@ export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
         i++;
         continue;
       }
-      if (/^-\s*\*{0,2}(?:Unidad|Unitat|Criterios):\*{0,2}/i.test(line)) {
+      if (/^-\s*\*{0,2}(?:Unidad|Unitat|Tema):\*{0,2}\s*(.*)/i.test(line)) {
+        const uMatch = line.match(/^-\s*\*{0,2}(?:Unidad|Unitat|Tema):\*{0,2}\s*(.*)/i);
+        if (uMatch && uMatch[1].trim()) {
+          const uVal = uMatch[1].replace(/\*{0,2}/g, '').trim();
+          currentAct.unidad = uVal;
+        }
+        i++;
+        continue;
+      }
+      if (/^-\s*\*{0,2}(?:Criterios|Criteris):\*{0,2}/i.test(line)) {
         i++;
         continue;
       }
@@ -130,7 +217,7 @@ export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
           i++;
         }
         if (instLines.length > 0) {
-          currentAct.elementos.push({ type: 'instrucciones', texto: instLines.join(' \n') });
+          currentAct.elementos.push({ type: 'instrucciones', texto: instLines.join(' \\ \n') });
         }
         continue;
       }
@@ -221,7 +308,8 @@ export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
       if (qMatch) {
         const qNum = parseInt(qMatch[1], 10);
         let qText = qMatch[2].trim();
-        let qLines = 4;
+        const isProject = currentAct.tipo.toLowerCase().includes('proy') || currentAct.tipo.toLowerCase().includes('projecte');
+        let qLines = isProject ? 0 : 4;
 
         // Comprobar si hay pauta en la misma línea o en la siguiente
         const inlineLineMatch = qText.match(/\[(?:LÍNEAS|LINEAS|LÍNIES):\s*(\d+)\]/i);
@@ -288,12 +376,15 @@ function renderTablaTypst(headers: string[], rows: string[][]): string {
   else if (colCount === 4) colsStr = "1.5fr, 1.2fr, 1.2fr, 1.2fr";
   else if (colCount === 2) colsStr = "1.2fr, 2fr";
 
-  const headerCells = headers.map(h => `[#text(size: 9pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#2F3E46"))[${sanitizeForTypst(h)}]]`).join(', ');
+  const headerCells = headers.map(h => {
+    const cleanH = h.replace(/<br\s*\/?>/gi, ' \\ ');
+    return `[#text(size: 9pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#2F3E46"))[${sanitizeForTypst(cleanH)}]]`;
+  }).join(', ');
 
   const rowCells: string[] = [];
   for (const row of rows) {
     for (let c = 0; c < colCount; c++) {
-      const cellText = row[c] || "";
+      let cellText = (row[c] || "").replace(/<br\s*\/?>/gi, ' \\ ');
       const lineMatch = cellText.match(/\[(?:LÍNEAS|LINEAS|LÍNIES):\s*(\d+)\]/i);
       if (lineMatch) {
         rowCells.push(`pauta-celda(lineas: ${lineMatch[1]})`);
@@ -346,7 +437,8 @@ export function generateTareasTypst(
       } else if (el.type === 'subseccion') {
         renderedElements.push(`  #subseccion-titulo("${sanitizeForTypst(el.titulo)}")\n  #v(3pt)`);
       } else if (el.type === 'pregunta') {
-        renderedElements.push(`  #seccion-pregunta("${el.num}", [${sanitizeForTypst(el.texto)}])\n  #v(2.5pt)\n  #pauta-lineas(${el.lineas || 4})\n  #v(4pt)`);
+        const pautaStr = el.lineas && el.lineas > 0 ? `\n  #v(2.5pt)\n  #pauta-lineas(${el.lineas})` : '';
+        renderedElements.push(`  #seccion-pregunta("${el.num}", [${sanitizeForTypst(el.texto)}])${pautaStr}\n  #v(4pt)`);
       } else if (el.type === 'tabla') {
         renderedElements.push(`  ${renderTablaTypst(el.headers, el.rows)}\n  #v(4pt)`);
       } else if (el.type === 'lista') {
@@ -360,7 +452,7 @@ export function generateTareasTypst(
     return `
 // PÁGINA ACTIVIDAD ${act.num}
 #franja-alumno()
-#banner-actividad("${act.num}", "${sanitizeForTypst(act.titulo)}", sesion: "${sanitizeForTypst(act.sesion)}", tipo: "${sanitizeForTypst(act.tipo)}")
+#banner-actividad("${act.num}", "${sanitizeForTypst(act.titulo)}", sesion: "${sanitizeForTypst(act.sesion)}", tipo: "${sanitizeForTypst(act.tipo)}", unidad: "${sanitizeForTypst(act.unidad || "")}")
 #v(3pt)
 ${renderedElements.join('\n')}
 #pagebreak()
@@ -384,10 +476,11 @@ ${renderedElements.join('\n')}
   footer-descent: 0.6cm,
   header: context [
     #grid(
-      columns: (1fr, auto),
+      columns: (auto, 1fr),
+      gutter: 12pt,
       align: (left + bottom, right + bottom),
-      text(8.8pt, fill: rgb("#52796F"), font: "Helvetica Neue", weight: "bold")[${headerLeft}],
-      text(8.8pt, fill: rgb("#D08C51"), font: "Helvetica Neue", weight: "bold")[${headerRight}]
+      text(8.5pt, fill: rgb("#52796F"), font: "Helvetica Neue", weight: "bold")[${headerLeft}],
+      align(right)[#text(8.5pt, fill: rgb("#D08C51"), font: "Helvetica Neue", weight: "bold")[${headerRight}]]
     )
     #v(3pt)
     #line(length: 100%, stroke: 0.6pt + rgb("#CAD2C5"))
@@ -431,7 +524,7 @@ ${renderedElements.join('\n')}
   #v(2pt)
 ]
 
-#let banner-actividad(numero, titulo, sesion: "", tipo: "Portfolio") = block(breakable: false, width: 100%, spacing: 8pt)[
+#let banner-actividad(numero, titulo, sesion: "", tipo: "Portfolio", unidad: "") = block(breakable: false, width: 100%, spacing: 8pt)[
   #rect(
     width: 100%,
     fill: rgb("#F0F4F8"),
@@ -444,7 +537,10 @@ ${renderedElements.join('\n')}
       gutter: 10pt,
       align: (left + horizon, right + top),
       [
-        #text(size: 9pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#52796F"))[${isVa ? "ACTIVITAT" : "ACTIVIDAD"} #numero] \\
+        #text(size: 9pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#52796F"))[${isVa ? "ACTIVITAT" : "ACTIVIDAD"} #numero]
+        #if unidad != "" [
+          #text(size: 8.5pt, font: "Helvetica Neue", fill: rgb("#64748B"))[ • #unidad]
+        ]
         #v(1pt)
         #text(size: ${titulos}pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#2F3E46"))[#titulo]
       ],

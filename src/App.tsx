@@ -5,7 +5,7 @@ import { EditorPane } from './components/EditorPane';
 import { PreviewPane } from './components/PreviewPane';
 import { generateApuntesTypst } from './generators/apuntesGenerator';
 import { generateExamenTypst, generateExamenConSolucionarioTypst } from './generators/examenesGenerator';
-import { generateTareasTypst } from './generators/tareasGenerator';
+import { generateTareasTypst, extractTareasMetadata } from './generators/tareasGenerator';
 import { compileTypstToPdf } from './services/typstCompiler';
 import {
   aleatorizarPreguntas,
@@ -99,7 +99,7 @@ export function App() {
 
   // Helper para extraer código escolar del curso (2E, 3E, 4E, 1B...)
   function extractCourseCode(markdown: string, defaultCode = '2E'): string {
-    const match = markdown.match(/^(?:#\s*)?(?:CURSO|CURS):\s*(.*)/im);
+    const match = markdown.match(/^(?:[#-]\s*(?:\*\*)?)?(?:CURSO|CURS)(?:\*\*)?:\s*(.*)/im);
     if (!match) return defaultCode;
     const raw = match[1].trim();
 
@@ -136,11 +136,11 @@ export function App() {
         return 'IN';
       }
       // 3. Valenciano: V, Valenciano, Valencià, Valencia, etc.
-      if (/^(?:V\b|VALENCI[AÀ]NO?|VAL\b)/i.test(raw)) {
+      if (/^(?:V\b|VALENCI[AÀ](?:N[OA]?)?|VAL\b)/i.test(raw)) {
         return 'V';
       }
       // 4. Castellano: C, Castellano, Castellà, Español, Spanish, etc.
-      if (/^(?:C\b|CASTELL[AÀ]NO?|ESPA[ÑN]OL|SPANISH|CAS\b|ES\b)/i.test(raw)) {
+      if (/^(?:C\b|CASTELL[AÀ](?:N[OA]?)?|ESPA[ÑN]OL|SPANISH|CAS\b|ES\b)/i.test(raw)) {
         return 'C';
       }
       // Sigla personalizada directa si el usuario escribe e.g. "FR", "DE", etc.
@@ -188,25 +188,26 @@ export function App() {
     }
 
     if (sec === 'apuntes') {
-      const titMatch = markdown.match(/^(?:#\s*)?(?:TÍTULO|TITULO|TÍTOL):\s*(.*)/im);
+      const titMatch = markdown.match(/^(?:#\s*)?(?:TÍTULO|TITULO|TÍTOL|UNIDAD DID[AÁ]CTICA|UNITAT DID[AÀ]CTICA):\s*(.*)/im);
       if (titMatch && titMatch[1].trim()) {
         let t = titMatch[1].trim();
         t = t.replace(/^(?:Tema|UD|UDI|UDII|Unitat|Unidad)\s*\d*[:\.-]?\s*/i, '').trim();
+        if (t.includes(':')) {
+          t = t.replace(/:/g, ' - ');
+        }
         return cleanFilenamePart(t);
       }
       return 'La dignidad humana';
     }
 
     if (sec === 'tareas') {
-      const titMatch = markdown.match(/^(?:#\s*)?(?:TÍTULO|TITULO|TÍTOL):\s*(.*)/im);
-      if (titMatch && titMatch[1].trim()) {
-        let t = titMatch[1].trim();
-        if (t.includes(':')) {
-          t = t.split(':')[0].trim();
-        }
-        return cleanFilenamePart(t);
+      const isVa = extractLanguageCode(markdown, lang) === 'V';
+      const meta = extractTareasMetadata(markdown, isVa);
+      let t = meta.tituloTema;
+      if (t.includes(':')) {
+        t = t.replace(/:/g, ' - ');
       }
-      return 'Historia de la Iglesia Primitiva';
+      return cleanFilenamePart(t);
     }
 
     return 'Documento';
@@ -273,7 +274,7 @@ export function App() {
     const langCode = extractLanguageCode(tareasMd, lang);
     const cursoCode = extractCourseCode(tareasMd, '2E');
     const tema = extractThemeName(tareasMd, 'tareas');
-    return `TA - ${cursoCode} - ${langCode} - ${tema} - Dossier de tareas.pdf`;
+    return `TA - ${cursoCode} - ${langCode} - ${tema}.pdf`;
   }, [section, lang, apuntesMode, examenTipo, examenDocType, examenVersions, activeExamenVersion, apuntesMd, tareasMd, shouldShowVersionIndicators]);
 
   // Nombre efectivo: personalizado o canónico
@@ -436,6 +437,17 @@ export function App() {
   // Al cambiar sección, reiniciar customFilename
   const handleSectionChange = (newSection: SectionType) => {
     setSection(newSection);
+    setCustomFilename(null);
+  };
+
+  // Cambio inteligente de sección transfiriendo el contenido si el usuario acepta la sugerencia
+  const handleSwitchSectionWithContent = (targetSection: SectionType) => {
+    if (section === 'apuntes' && targetSection === 'tareas') {
+      setTareasMd(apuntesMd);
+    } else if (section === 'tareas' && targetSection === 'apuntes') {
+      setApuntesMd(tareasMd);
+    }
+    setSection(targetSection);
     setCustomFilename(null);
   };
 
@@ -857,6 +869,7 @@ export function App() {
           onResetFontSizes={handleResetFontSizes}
           onLoadSample={handleLoadSample}
           onClear={handleClear}
+          onSwitchSection={handleSwitchSectionWithContent}
         />
 
         <PreviewPane
