@@ -26,6 +26,52 @@ function sanitizeForTypst(text: string): string {
     .replace(/<(?=[0-9a-zA-Z_%])/g, '\\<');
 }
 
+function formatInlineTypst(text: string): string {
+  if (!text) return "";
+  let res = text;
+  // Escapar almohadillas literales para que no se interpreten como código Typst
+  res = res.replace(/#/g, '\\#');
+  // Código entre backticks: `code`
+  res = res.replace(/`([^`\n]+?)`/g, '#raw("$1")');
+  // Negrita: **texto** o __texto__
+  res = res.replace(/\*\*([^*\n]+?)\*\*/g, '#strong[$1]');
+  res = res.replace(/__([^_\n]+?)__/g, '#strong[$1]');
+  // Cursiva: *texto* o _texto_
+  res = res.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '#emph[$1]');
+  res = res.replace(/(?<!_)_([^_\n]+?)_(?!_)/g, '#emph[$1]');
+  // Escapar comillas dobles y etiquetas Typst accidentales: <alfa>
+  res = res.replace(/"/g, '\\"');
+  res = res.replace(/<(?=[0-9a-zA-Z_%])/g, '\\<');
+  return res;
+}
+
+function renderInstruccionesContent(texto: string): string {
+  if (!texto) return "";
+  // 1. Reemplazar etiquetas HTML <br>, <br/>, <br /> por saltos de línea
+  const normalized = texto.replace(/<br\s*\/?>/gi, '\n');
+
+  // 2. Separar en líneas
+  const rawLines = normalized.split(/\r?\n/);
+  const formattedLines: string[] = [];
+
+  for (const rawLine of rawLines) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) continue;
+    // Si contiene sub-saltos escritos con doble barra inclinada \\ o barra \
+    const subParts = trimmed.split(/\s*<br\s*\/?>\s*|\s*\\\\\s*|(?<=[^\\])\\\s+/i);
+    for (const part of subParts) {
+      const cleanPart = part.trim();
+      if (!cleanPart) continue;
+      formattedLines.push(formatInlineTypst(cleanPart));
+    }
+  }
+
+  if (formattedLines.length === 0) return "";
+  if (formattedLines.length === 1) return formattedLines[0];
+
+  return formattedLines.join(' \\\n    ');
+}
+
 export interface TareasMetadata {
   curso: string;
   asignatura: string;
@@ -187,11 +233,44 @@ export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
         continue;
       }
 
-      // 4. Instrucciones en formato metadato: "- Instrucciones: ..."
+      // 4. Instrucciones en formato metadato: "- Instrucciones: ..." (soporta múltiples líneas)
       if (/^-\s*\*{0,2}(?:Instrucciones|Instruccions):\*{0,2}/i.test(line)) {
-        const text = line.substring(line.indexOf(':') + 1).replace(/\*{0,2}/g, '').trim();
-        currentAct.elementos.push({ type: 'instrucciones', texto: text });
+        const firstText = line.substring(line.indexOf(':') + 1).replace(/\*{0,2}/g, '').trim();
+        const instLines: string[] = [];
+        if (firstText) {
+          instLines.push(firstText);
+        }
         i++;
+        while (i < lines.length) {
+          const rawL = lines[i];
+          const l = rawL.trim();
+          // Línea en blanco: termina el bloque de instrucciones si ya tenemos líneas
+          if (!l) {
+            i++;
+            break;
+          }
+          // Si empieza por cabecera, salto de página, caja de texto o tabla: termina
+          if (l.startsWith('#') || l === '---' || l === '***' || l.startsWith('>') || l.startsWith('|')) {
+            break;
+          }
+          // Si es otro metadato de cabecera (- Sesión:, - Tipo:, - Unidad:): termina
+          if (l.match(/^-\s*\*{0,2}(?:Sesión|Sessió|Sesiones|Tipo|Tipus|Unidad|Unitat|Tema|Criterios):\*{0,2}/i)) {
+            break;
+          }
+          // Si es una pregunta numerada real no indentada (ej. "1. Explica..."): termina
+          const isIndented = rawL.startsWith(' ') || rawL.startsWith('\t');
+          if (!isIndented && l.match(/^\d+[\.\)]\s+/)) {
+            if (instLines.length > 0) {
+              break;
+            }
+          }
+          const cleanLine = l.replace(/^[-*•]\s+/, '');
+          instLines.push(cleanLine);
+          i++;
+        }
+        if (instLines.length > 0) {
+          currentAct.elementos.push({ type: 'instrucciones', texto: instLines.join('\n') });
+        }
         continue;
       }
 
@@ -229,14 +308,25 @@ export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
         i++;
         const instLines: string[] = [];
         while (i < lines.length) {
-          const l = lines[i].trim();
-          if (!l) { i++; continue; }
-          if (l.startsWith('###') || l.startsWith('##') || l.startsWith('#') || l === '---' || l.startsWith('>') || l.startsWith('|')) break;
-          instLines.push(l);
+          const rawL = lines[i];
+          const l = rawL.trim();
+          if (!l) {
+            i++;
+            break;
+          }
+          if (l.startsWith('#') || l === '---' || l === '***' || l.startsWith('>') || l.startsWith('|')) {
+            break;
+          }
+          const isIndented = rawL.startsWith(' ') || rawL.startsWith('\t');
+          if (!isIndented && l.match(/^\d+[\.\)]\s+/) && (l.includes('[LÍNEAS') || l.includes('[LINEAS') || l.includes('[LÍNIES') || (i + 1 < lines.length && lines[i + 1].includes('[LÍNEAS')))) {
+            break;
+          }
+          const cleanLine = l.replace(/^[-*•]\s+/, '');
+          instLines.push(cleanLine);
           i++;
         }
         if (instLines.length > 0) {
-          currentAct.elementos.push({ type: 'instrucciones', texto: instLines.join(' \\ \n') });
+          currentAct.elementos.push({ type: 'instrucciones', texto: instLines.join('\n') });
         }
         continue;
       }
@@ -450,7 +540,7 @@ export function generateTareasTypst(
     // Renderizado estrictamente secuencial de los elementos según el orden en el texto
     for (const el of act.elementos) {
       if (el.type === 'instrucciones') {
-        renderedElements.push(`  #caja-instrucciones[${sanitizeForTypst(el.texto)}]\n  #v(4pt)`);
+        renderedElements.push(`  #caja-instrucciones[\n    ${renderInstruccionesContent(el.texto)}\n  ]\n  #v(4pt)`);
       } else if (el.type === 'caja') {
         renderedElements.push(`  #caja-texto("${sanitizeForTypst(el.titulo)}", [${sanitizeForTypst(el.cuerpo)}], icono: "${el.icono || "📜"}", estilo: "${el.estilo || "fuente"}")\n  #v(4pt)`);
       } else if (el.type === 'subseccion') {
