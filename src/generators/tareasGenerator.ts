@@ -7,7 +7,8 @@ export type TareaElemento =
   | { type: 'subseccion'; titulo: string }
   | { type: 'tabla'; headers: string[]; rows: string[][] }
   | { type: 'lista'; items: string[] }
-  | { type: 'texto'; texto: string };
+  | { type: 'texto'; texto: string }
+  | { type: 'pagebreak' };
 
 export interface TareaActividad {
   num: number | string;
@@ -151,9 +152,9 @@ export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
       currentAct = {
         num: actNum,
         titulo: actTitle,
-        sesion: actNum,
-        tipo: line.toLowerCase().includes('proyecto') || line.toLowerCase().includes('projecte') ? (isVa ? "Projecte" : "Proyecto") : (isVa ? "Portfoli" : "Portfolio"),
-        unidad: tituloTema,
+        sesion: "",
+        tipo: "",
+        unidad: "",
         elementos: []
       };
       actividades.push(currentAct);
@@ -162,27 +163,14 @@ export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
     }
 
     if (currentAct) {
-      // Salto de página entre bloques
-      if (line === '---' || line === '***') {
+      // 1. Salto de página explícito
+      if (line === '---' || line === '***' || line === '#pagebreak()' || line === '#pagebreak') {
+        currentAct.elementos.push({ type: 'pagebreak' });
         i++;
         continue;
       }
 
-      // Metadatos de la actividad
-      if (/^-\s*\*{0,2}(?:Sesión|Sessió|Sesiones):\*{0,2}/i.test(line)) {
-        currentAct.sesion = line.substring(line.indexOf(':') + 1).replace(/\*{0,2}/g, '').trim();
-        i++;
-        continue;
-      }
-      if (/^-\s*\*{0,2}(?:Tipo|Tipus|Tarea de|Modalidad|Modalitat):\*{0,2}/i.test(line)) {
-        const val = line.substring(line.indexOf(':') + 1).replace(/\*{0,2}/g, '').trim();
-        if (/proyecto|projecte/i.test(val)) currentAct.tipo = isVa ? "Projecte" : "Proyecto";
-        else if (/reto|repte/i.test(val)) currentAct.tipo = isVa ? "Repte" : "Reto";
-        else if (/situación|situació/i.test(val)) currentAct.tipo = isVa ? "Situació d'Aprenentatge" : "Situación de Aprendizaje";
-        else currentAct.tipo = isVa ? "Portfoli" : "Portfolio";
-        i++;
-        continue;
-      }
+      // 2. Metadatos de la actividad: Unidad (si se especifica explícitamente)
       if (/^-\s*\*{0,2}(?:Unidad|Unitat|Tema):\*{0,2}\s*(.*)/i.test(line)) {
         const uMatch = line.match(/^-\s*\*{0,2}(?:Unidad|Unitat|Tema):\*{0,2}\s*(.*)/i);
         if (uMatch && uMatch[1].trim()) {
@@ -192,15 +180,46 @@ export function parseTareasMarkdown(markdown: string, isVa: boolean = false) {
         i++;
         continue;
       }
+
+      // 3. Metadato Criterios: ignorar
       if (/^-\s*\*{0,2}(?:Criterios|Criteris):\*{0,2}/i.test(line)) {
         i++;
         continue;
       }
 
-      // Instrucciones en formato metadato: "- Instrucciones: ..."
+      // 4. Instrucciones en formato metadato: "- Instrucciones: ..."
       if (/^-\s*\*{0,2}(?:Instrucciones|Instruccions):\*{0,2}/i.test(line)) {
         const text = line.substring(line.indexOf(':') + 1).replace(/\*{0,2}/g, '').trim();
         currentAct.elementos.push({ type: 'instrucciones', texto: text });
+        i++;
+        continue;
+      }
+
+      // 5. Metadatos de cabecera de la actividad:
+      // Primer guion debajo de ACTIVIDAD -> Sesión (arriba a la derecha en azul)
+      // Segundo guion debajo de ACTIVIDAD -> Tipo de actividad (abajo a la derecha en amarillo)
+      const isExplicitSesion = /^-\s*\*{0,2}(?:Sesión|Sessió|Sesiones):\*{0,2}/i.test(line);
+      const isExplicitTipo = /^-\s*\*{0,2}(?:Tipo|Tipus|Modalidad|Modalitat|Tarea de|Tasca de):\*{0,2}/i.test(line);
+
+      if (isExplicitSesion || (currentAct.elementos.length === 0 && !currentAct.sesion && (line.startsWith('- ') || line.startsWith('* ')))) {
+        const clean = line.replace(/^[-*]\s*/, '').replace(/\*{1,2}/g, '').trim();
+        const colonIdx = clean.indexOf(':');
+        if (colonIdx !== -1) {
+          const label = clean.substring(0, colonIdx).trim();
+          const val = clean.substring(colonIdx + 1).trim();
+          currentAct.sesion = val ? `${label} ${val}` : label;
+        } else {
+          currentAct.sesion = clean;
+        }
+        i++;
+        continue;
+      }
+
+      if (isExplicitTipo || (currentAct.elementos.length === 0 && !currentAct.tipo && (line.startsWith('- ') || line.startsWith('* ')))) {
+        const clean = line.replace(/^[-*]\s*/, '').replace(/\*{1,2}/g, '').trim();
+        const tipoMatch = clean.match(/^(?:Tipo(?:\s*de\s*(?:trabajo|tarea|activitat|actividad))?|Tipus(?:\s*de\s*(?:treball|tasca|activitat))?|Modalidad|Modalitat|Tarea de|Tasca de):\s*(.*)/i);
+        const tipoText = tipoMatch && tipoMatch[1].trim() ? tipoMatch[1].trim() : clean;
+        currentAct.tipo = tipoText;
         i++;
         continue;
       }
@@ -446,13 +465,22 @@ export function generateTareasTypst(
         renderedElements.push(`  #block(spacing: 3pt)[\n${itemsCode}\n  ]\n  #v(4pt)`);
       } else if (el.type === 'texto') {
         renderedElements.push(`  #text(size: ${(contenido * 0.95).toFixed(1)}pt)[${sanitizeForTypst(el.texto)}]\n  #v(3pt)`);
+      } else if (el.type === 'pagebreak') {
+        if (renderedElements.length > 0 && renderedElements[renderedElements.length - 1].trim() !== '#pagebreak()') {
+          renderedElements.push(`  #pagebreak()`);
+        }
       }
+    }
+
+    // Limpiar saltos de página redundantes al final de la actividad
+    while (renderedElements.length > 0 && renderedElements[renderedElements.length - 1].trim() === '#pagebreak()') {
+      renderedElements.pop();
     }
 
     return `
 // PÁGINA ACTIVIDAD ${act.num}
 #franja-alumno()
-#banner-actividad("${act.num}", "${sanitizeForTypst(act.titulo)}", sesion: "${sanitizeForTypst(act.sesion)}", tipo: "${sanitizeForTypst(act.tipo)}", unidad: "${sanitizeForTypst(act.unidad || "")}")
+#banner-actividad("${act.num}", "${sanitizeForTypst(act.titulo)}", sesion: "${sanitizeForTypst(act.sesion)}", tipo: "${sanitizeForTypst(act.tipo)}")
 #v(3pt)
 ${renderedElements.join('\n')}
 #pagebreak()
@@ -524,7 +552,7 @@ ${renderedElements.join('\n')}
   #v(2pt)
 ]
 
-#let banner-actividad(numero, titulo, sesion: "", tipo: "Portfolio", unidad: "") = block(breakable: false, width: 100%, spacing: 8pt)[
+#let banner-actividad(numero, titulo, sesion: "", tipo: "") = block(breakable: false, width: 100%, spacing: 8pt)[
   #rect(
     width: 100%,
     fill: rgb("#F0F4F8"),
@@ -538,9 +566,6 @@ ${renderedElements.join('\n')}
       align: (left + horizon, right + top),
       [
         #text(size: 9pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#52796F"))[${isVa ? "ACTIVITAT" : "ACTIVIDAD"} #numero]
-        #if unidad != "" [
-          #text(size: 8.5pt, font: "Helvetica Neue", fill: rgb("#64748B"))[ • #unidad]
-        ]
         #v(1pt)
         #text(size: ${titulos}pt, font: "Helvetica Neue", weight: "bold", fill: rgb("#2F3E46"))[#titulo]
       ],
@@ -552,7 +577,7 @@ ${renderedElements.join('\n')}
             align: right,
             [
               #if sesion != "" [
-                #badge("${isVa ? "SESSIÓ " : "SESIÓN "}" + str(sesion), bg: rgb("#E0E7FF"), border: rgb("#A5B4FC"), color: rgb("#3730A3"))
+                #badge(upper(sesion), bg: rgb("#E0E7FF"), border: rgb("#A5B4FC"), color: rgb("#3730A3"))
               ]
             ],
             [
