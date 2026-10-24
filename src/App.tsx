@@ -12,6 +12,13 @@ import {
   aleatorizarRespuestas,
   generarNuevaVersionExamen,
 } from './utils/examenRandomizer';
+import { DocumentLibraryModal } from './components/DocumentLibraryModal';
+import {
+  saveDraft,
+  loadDraft,
+  listDocuments,
+  type SavedDocument,
+} from './services/storageService';
 import {
   SAMPLE_APUNTES_ES,
   SAMPLE_APUNTES_VA,
@@ -75,6 +82,11 @@ export function App() {
 
   // Código Typst de la última compilación exitosa
   const [lastCompiledTypst, setLastCompiledTypst] = useState<string>('');
+
+  // Estados de persistencia y biblioteca
+  const [isLibraryOpen, setIsLibraryOpen] = useState<boolean>(false);
+  const [savedDocsCount, setSavedDocsCount] = useState<number>(0);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
   const activeBlobUrlRef = useRef<string | null>(null);
 
@@ -343,9 +355,149 @@ export function App() {
     }
   }, [buildTypstSource]);
 
-  // Compilar únicamente en la carga inicial de la aplicación
+  // Restaurar borradores automáticos y cargar contador de la biblioteca al iniciar
   useEffect(() => {
-    triggerCompilation();
+    let mounted = true;
+
+    async function initStorage() {
+      try {
+        const [draftApuntes, draftExamenes, draftTareas, allDocs] = await Promise.all([
+          loadDraft('apuntes'),
+          loadDraft('examenes'),
+          loadDraft('tareas'),
+          listDocuments(),
+        ]);
+
+        if (!mounted) return;
+
+        if (allDocs) {
+          setSavedDocsCount(allDocs.length);
+        }
+
+        if (draftApuntes?.apuntesData?.markdown) {
+          setApuntesMd(draftApuntes.apuntesData.markdown);
+          if (draftApuntes.apuntesData.mode) {
+            setApuntesMode(draftApuntes.apuntesData.mode);
+          }
+        }
+
+        if (draftExamenes?.examenesData) {
+          const ex = draftExamenes.examenesData;
+          if (ex.versions && ex.versions.length > 0) {
+            setExamenVersions(ex.versions);
+            setActiveVersionId(ex.activeVersionId || ex.versions[0].id);
+          }
+          if (ex.tipo) setExamenTipo(ex.tipo);
+          if (ex.docType) setExamenDocType(ex.docType);
+          if (ex.questionsPerPage) setExamQuestionsPerPage(ex.questionsPerPage);
+        }
+
+        if (draftTareas?.tareasData?.markdown) {
+          setTareasMd(draftTareas.tareasData.markdown);
+        }
+      } catch (err) {
+        console.error('Error restaurando borradores iniciales:', err);
+      } finally {
+        if (mounted) {
+          setIsInitialized(true);
+        }
+      }
+    }
+
+    initStorage();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Compilar una vez inicializado el almacenamiento
+  useEffect(() => {
+    if (isInitialized) {
+      triggerCompilation();
+    }
+  }, [isInitialized, triggerCompilation]);
+
+  // Auto-guardado de borradores en segundo plano con debounce
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    const timer = setTimeout(() => {
+      if (section === 'apuntes') {
+        saveDraft({
+          section: 'apuntes',
+          updatedAt: Date.now(),
+          lang,
+          apuntesData: { markdown: apuntesMd, mode: apuntesMode }
+        }).catch(err => console.error('Error autoguardando borrador de apuntes:', err));
+      } else if (section === 'examenes') {
+        saveDraft({
+          section: 'examenes',
+          updatedAt: Date.now(),
+          lang,
+          examenesData: {
+            tipo: examenTipo,
+            docType: examenDocType,
+            questionsPerPage: examQuestionsPerPage,
+            versions: examenVersions,
+            activeVersionId
+          }
+        }).catch(err => console.error('Error autoguardando borrador de exámenes:', err));
+      } else if (section === 'tareas') {
+        saveDraft({
+          section: 'tareas',
+          updatedAt: Date.now(),
+          lang,
+          tareasData: { markdown: tareasMd }
+        }).catch(err => console.error('Error autoguardando borrador de tareas:', err));
+      }
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [
+    isInitialized,
+    section,
+    lang,
+    apuntesMd,
+    apuntesMode,
+    examenTipo,
+    examenDocType,
+    examQuestionsPerPage,
+    examenVersions,
+    activeVersionId,
+    tareasMd
+  ]);
+
+  // Cargar documento seleccionado desde la biblioteca
+  const handleLoadDocument = useCallback((doc: SavedDocument) => {
+    setSection(doc.section);
+    setLang(doc.lang);
+    setCustomFilename(null);
+
+    if (doc.section === 'apuntes' && doc.apuntesData) {
+      setApuntesMd(doc.apuntesData.markdown);
+      setApuntesMode(doc.apuntesData.mode);
+    } else if (doc.section === 'examenes' && doc.examenesData) {
+      setExamenTipo(doc.examenesData.tipo);
+      setExamenDocType(doc.examenesData.docType);
+      setExamQuestionsPerPage(doc.examenesData.questionsPerPage);
+      setExamenVersions(doc.examenesData.versions);
+      setActiveVersionId(doc.examenesData.activeVersionId || doc.examenesData.versions[0]?.id || 'v1');
+    } else if (doc.section === 'tareas' && doc.tareasData) {
+      setTareasMd(doc.tareasData.markdown);
+    }
+
+    setTimeout(() => {
+      triggerCompilation();
+    }, 60);
+  }, [triggerCompilation]);
+
+  // Cerrar biblioteca y actualizar contador
+  const handleCloseLibrary = useCallback(() => {
+    setIsLibraryOpen(false);
+    listDocuments()
+      .then(docs => setSavedDocsCount(docs.length))
+      .catch(console.error);
   }, []);
 
   // Helper para identificar si un texto de examen corresponde a una plantilla de ejemplo
@@ -831,6 +983,8 @@ export function App() {
         lang={lang}
         onLangChange={handleLangChange}
         isCompiling={compilationState.isCompiling}
+        onOpenLibrary={() => setIsLibraryOpen(true)}
+        savedDocsCount={savedDocsCount}
       />
 
       <main className="app-main-split">
@@ -870,6 +1024,7 @@ export function App() {
           onLoadSample={handleLoadSample}
           onClear={handleClear}
           onSwitchSection={handleSwitchSectionWithContent}
+          onSaveToLibrary={() => setIsLibraryOpen(true)}
         />
 
         <PreviewPane
@@ -889,6 +1044,23 @@ export function App() {
           onDownloadAllVersions={handleDownloadAllVersions}
         />
       </main>
+
+      <DocumentLibraryModal
+        isOpen={isLibraryOpen}
+        onClose={handleCloseLibrary}
+        currentSection={section}
+        lang={lang}
+        currentFilename={effectiveFilename}
+        currentApuntesMd={apuntesMd}
+        currentApuntesMode={apuntesMode}
+        currentExamenVersions={examenVersions}
+        currentExamenTipo={examenTipo}
+        currentExamenDocType={examenDocType}
+        currentExamQuestionsPerPage={examQuestionsPerPage}
+        activeVersionId={activeVersionId}
+        currentTareasMd={tareasMd}
+        onLoadDocument={handleLoadDocument}
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import type { SectionType, Language, ApuntesMode, ExamenTipo, ExamenDocType, FontSizesConfig, ExamenVersion } from '../types';
 import { QuickInsertBar } from './QuickInsertBar';
-import { RotateCcw, Trash2, Scissors, CheckCircle2, Type, Shuffle, Plus, Sparkles } from 'lucide-react';
+import { RotateCcw, Trash2, Scissors, CheckCircle2, Type, Shuffle, Plus, Sparkles, Save } from 'lucide-react';
 
 interface EditorPaneProps {
   section: SectionType;
@@ -38,6 +38,7 @@ interface EditorPaneProps {
   onLoadSample: () => void;
   onClear: () => void;
   onSwitchSection?: (section: SectionType) => void;
+  onSaveToLibrary?: () => void;
 }
 
 export const EditorPane: React.FC<EditorPaneProps> = ({
@@ -70,6 +71,7 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
   onLoadSample,
   onClear,
   onSwitchSection,
+  onSaveToLibrary,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isVa = lang === 'va';
@@ -263,6 +265,17 @@ export const EditorPane: React.FC<EditorPaneProps> = ({
         </div>
 
         <div className="controls-right">
+          {onSaveToLibrary && (
+            <button
+              type="button"
+              className="action-btn-small btn-save-quick"
+              onClick={onSaveToLibrary}
+              title={isVa ? "Guardar document a la biblioteca" : "Guardar documento en la biblioteca"}
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>{isVa ? 'Guardar' : 'Guardar'}</span>
+            </button>
+          )}
           <button
             type="button"
             className="action-btn-small"

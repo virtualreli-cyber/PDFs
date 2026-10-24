@@ -1,6 +1,6 @@
 import React from 'react';
 import type { SectionType, Language } from '../types';
-import { BookOpen, FileText, CheckSquare, Sparkles } from 'lucide-react';
+import { BookOpen, FileText, CheckSquare, Sparkles, FolderOpen } from 'lucide-react';
 
 interface HeaderProps {
   currentSection: SectionType;
@@ -8,6 +8,8 @@ interface HeaderProps {
   lang: Language;
   onLangChange: (lang: Language) => void;
   isCompiling: boolean;
+  onOpenLibrary?: () => void;
+  savedDocsCount?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,6 +18,8 @@ export const Header: React.FC<HeaderProps> = ({
   lang,
   onLangChange,
   isCompiling,
+  onOpenLibrary,
+  savedDocsCount = 0,
 }) => {
   return (
     <header className="app-header">
@@ -59,6 +63,19 @@ export const Header: React.FC<HeaderProps> = ({
       </nav>
 
       <div className="header-actions">
+        {onOpenLibrary && (
+          <button
+            type="button"
+            className="btn-header-library"
+            onClick={onOpenLibrary}
+            title={lang === 'va' ? 'Obrir la meua biblioteca de documents' : 'Abrir mi biblioteca de documentos'}
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-emerald-800" />
+            <span>{lang === 'va' ? 'Biblioteca' : 'Mis Documentos'}</span>
+            {savedDocsCount > 0 && <span className="header-library-badge">{savedDocsCount}</span>}
+          </button>
+        )}
+
         <div className="lang-switcher">
           <button
             type="button"
